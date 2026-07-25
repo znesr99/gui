@@ -63,30 +63,55 @@ function SaveManager:SetupParser()
         
         -- Dropdown (ตัวเลือก)
         Dropdown = {
-            Save = function(idx, object)
-                return { 
-                    type = "Dropdown", 
-                    idx = idx, 
-                    value = object.Value,
-                    multi = object.Multi or false
-                }
-            end,
-            Load = function(idx, data)
-                if self.Options[idx] then
-                    
-                    if data.multi and type(data.value) == "table" then
-                        local Value = {}
-            
-                        for _,v in ipairs(data.value) do
-                            Value[v] = true
-                        end
-            
-                        self.Options[idx]:SetValue(Value)
-                    else
-                        self.Options[idx]:SetValue(data.value)
+        Save = function(idx, object)
+    
+            local Value = object.Value
+    
+            if object.Multi and type(Value) == "table" then
+                local NewValue = {}
+    
+                for k,v in pairs(Value) do
+                    if v == true then
+                        table.insert(NewValue,k)
+                    elseif type(k) == "number" then
+                        table.insert(NewValue,v)
                     end
-                    
                 end
+    
+                Value = NewValue
+            end
+    
+            return {
+                type = "Dropdown",
+                idx = idx,
+                value = Value,
+                multi = object.Multi or false
+            }
+        end,
+    
+    
+        Load = function(idx, data)
+    
+            if self.Options[idx] then
+    
+                if data.multi then
+    
+                    local Value = {}
+    
+                    for _,v in ipairs(data.value or {}) do
+                        Value[v] = true
+                    end
+    
+                    self.Options[idx]:SetValue(Value)
+    
+                else
+    
+                    self.Options[idx]:SetValue(data.value)
+
+                    end
+        
+                end
+        
             end,
         },
         

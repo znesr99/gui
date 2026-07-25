@@ -228,7 +228,7 @@ function SaveManager:Save(name, silent)
     self.CurrentConfig = name
     
     if not silent then
-        self:Notify("✅ สำเร็จ", string.format("บันทึก Config: %s", name), 
+        self:Notify("✅ Success", string.format("Saved Config: %s", name), 
                    string.format("บันทึกการตั้งค่า %d รายการ", count))
     end
     
@@ -267,7 +267,7 @@ function SaveManager:Load(name, silent)
     self.CurrentConfig = name
     
     if not silent then
-        self:Notify("✅ โหลดสำเร็จ", string.format("โหลด Config: %s", name), 
+        self:Notify("✅ Success", string.format("Loaded Config: %s", name), 
                    string.format("โหลดการตั้งค่า %d รายการ", count))
     end
     
@@ -283,7 +283,7 @@ function SaveManager:Delete(name, silent)
             self.CurrentConfig = nil
         end
         if not silent then
-            self:Notify("🗑️ ลบสำเร็จ", string.format("ลบ Config: %s", name), "")
+            self:Notify("🗑️ Deleted", string.format("Deleted Config: %s", name), "")
         end
         return true, "Config deleted"
     end
@@ -338,7 +338,7 @@ function SaveManager:LoadAutoloadConfig()
             local success = self:Load(name, true)
             if success then
                 self.AutoLoadEnabled = true
-                self:Notify("🔄 Auto Load", string.format("โหลด Config: %s", name), "โหลดอัตโนมัติสำเร็จ")
+                self:Notify("🔄 Auto Load", string.format("Loaded Config: %s", name), "โหลดอัตโนมัติสำเร็จ")
             end
         end
     end
@@ -352,7 +352,7 @@ function SaveManager:SetAutoload(name, silent)
         end
         self.AutoLoadEnabled = false
         if not silent then
-            self:Notify("🔓 Auto Load", "ปิดใช้งาน Auto Load", "")
+            self:Notify("🔓 Auto Load", "Auto Load Disabled", "")
         end
         return true
     end
@@ -368,7 +368,7 @@ function SaveManager:SetAutoload(name, silent)
     writefile(self.Folder .. "/settings/autoload.txt", name)
     self.AutoLoadEnabled = true
     if not silent then
-        self:Notify("🔒 Auto Load", string.format("เปิดใช้งาน: %s", name), "จะโหลดอัตโนมัติเมื่อเปิดสคริปต์")
+        self:Notify("🔒 Auto Load", string.format("Auto Load Enabled: %s", name), "จะโหลดอัตโนมัติเมื่อเปิดสคริปต์")
     end
     return true
 end
@@ -409,7 +409,7 @@ function SaveManager:BuildConfigSection(tab)
     -- Dropdown รายชื่อ Config
     local configList = self:RefreshConfigList()
     local configDropdown = tab:AddDropdown("SaveManager_ConfigList", { 
-        Title = "📂 เลือก Config",
+        Title = "📂 Select Config",
         Description = "เลือกไฟล์ Config ที่ต้องการ",
         Values = configList,
         AllowNull = true,
@@ -418,7 +418,7 @@ function SaveManager:BuildConfigSection(tab)
     
     -- ช่องใส่ชื่อ Config
     local nameInput = tab:AddInput("SaveManager_ConfigName", { 
-        Title = "✏️ ชื่อ Config",
+        Title = "✏️ Config Name",
         Description = "ตั้งชื่อ Config ใหม่",
         Default = "",
         Placeholder = "เช่น: แม็พโจรสลัด, บอทเลเวล 100",
@@ -427,12 +427,12 @@ function SaveManager:BuildConfigSection(tab)
     
     -- ปุ่มบันทึก
     tab:AddButton({
-        Title = "💾 บันทึก Config",
+        Title = "💾 Save Config",
         Description = "บันทึกการตั้งค่าปัจจุบัน",
         Callback = function()
             local name = self.Options.SaveManager_ConfigName.Value
             if name == "" then
-                self:Notify("⚠️ คำเตือน", "กรุณาใส่ชื่อ Config", "ชื่อห้ามเว้นว่าง")
+                self:Notify("⚠️ Warning", "กรุณาใส่ชื่อ Config", "ชื่อห้ามเว้นว่าง")
                 return
             end
             self:Save(name)
@@ -444,12 +444,12 @@ function SaveManager:BuildConfigSection(tab)
     
     -- ปุ่มโหลด
     tab:AddButton({
-        Title = "📂 โหลด Config",
+        Title = "📂 Load Config",
         Description = "โหลดการตั้งค่าจากไฟล์",
         Callback = function()
             local name = self.Options.SaveManager_ConfigList.Value
             if not name then
-                self:Notify("⚠️ คำเตือน", "กรุณาเลือก Config", "เลือกจากรายการด้านบน")
+                self:Notify("⚠️ Warning", "กรุณาเลือก Config", "เลือกจากรายการด้านบน")
                 return
             end
             self:Load(name)
@@ -459,12 +459,12 @@ function SaveManager:BuildConfigSection(tab)
     
     -- ปุ่มบันทึกทับ
     tab:AddButton({
-        Title = "🔄 บันทึกทับ",
+        Title = "🔄 Overwrite Config",
         Description = "บันทึกทับ Config ที่เลือก",
         Callback = function()
             local name = self.Options.SaveManager_ConfigList.Value
             if not name then
-                self:Notify("⚠️ คำเตือน", "กรุณาเลือก Config", "เลือกจากรายการด้านบน")
+                self:Notify("⚠️ Warning", "กรุณาเลือก Config", "เลือกจากรายการด้านบน")
                 return
             end
             self:Save(name)
@@ -473,12 +473,12 @@ function SaveManager:BuildConfigSection(tab)
     
     -- ปุ่มลบ
     tab:AddButton({
-        Title = "🗑️ ลบ Config",
+        Title = "🗑️ Delete Config",
         Description = "ลบไฟล์ Config ที่เลือก",
         Callback = function()
             local name = self.Options.SaveManager_ConfigList.Value
             if not name then
-                self:Notify("⚠️ คำเตือน", "กรุณาเลือก Config", "เลือกจากรายการด้านบน")
+                self:Notify("⚠️ Warning", "กรุณาเลือก Config", "เลือกจากรายการด้านบน")
                 return
             end
             self:Delete(name)
@@ -490,13 +490,13 @@ function SaveManager:BuildConfigSection(tab)
     
     -- ปุ่มรีเฟรช
     tab:AddButton({
-        Title = "🔄 รีเฟรชรายการ",
+        Title = "🔄 Refresh List",
         Description = "อัปเดตรายการ Config",
         Callback = function()
             local newList = self:RefreshConfigList()
             configDropdown:SetValues(newList)
             configDropdown:SetValue(nil)
-            self:Notify("🔄 รีเฟรช", "อัปเดตรายการ Config", string.format("พบ %d ไฟล์", #newList))
+            self:Notify("🔄 Refreshed", "อัปเดตรายการ Config", string.format("พบ %d ไฟล์", #newList))
         end
     })
     
@@ -506,14 +506,14 @@ function SaveManager:BuildConfigSection(tab)
     -- Toggle Auto Load
     local currentAutoLoad = self:GetAutoloadConfig()
     local autoToggle = autoSection:AddToggle("SaveManager_AutoLoad", {
-        Title = "🔁 เปิด Auto Load",
+        Title = "🔁 Enable Auto Load",
         Description = currentAutoLoad and string.format("กำลังโหลด: %s", currentAutoLoad) or "ปิดใช้งาน",
         Default = currentAutoLoad ~= nil,
         Callback = function(value)
             if value then
                 local name = self.Options.SaveManager_ConfigList.Value
                 if not name then
-                    self:Notify("⚠️ คำเตือน", "กรุณาเลือก Config", "เลือก Config ที่ต้องการ Auto Load")
+                    self:Notify("⚠️ Warning", "กรุณาเลือก Config", "เลือก Config ที่ต้องการ Auto Load")
                     autoToggle:SetValue(false)
                     return
                 end
@@ -528,7 +528,7 @@ function SaveManager:BuildConfigSection(tab)
     
     -- ปุ่มแสดงข้อมูล Config ปัจจุบัน
     autoSection:AddButton({
-        Title = "ℹ️ ข้อมูล Config ปัจจุบัน",
+        Title = "ℹ️ Config Info",
         Description = "แสดงข้อมูลของ Config ที่กำลังใช้งาน",
         Callback = function()
             if self.CurrentConfig then
@@ -540,13 +540,13 @@ function SaveManager:BuildConfigSection(tab)
                     if success and data and data.info then
                         local info = data.info
                         local timeStr = os.date("%d/%m/%Y %H:%M:%S", info.created)
-                        self:Notify("ℹ️ ข้อมูล Config", 
-                                   string.format("ชื่อ: %s", self.CurrentConfig),
+                        self:Notify("ℹ️ Config Info", 
+                                   string.format("Name: %s", self.CurrentConfig),
                                    string.format("สร้างเมื่อ: %s\nเวอร์ชัน: %s", timeStr, info.version or "1.0"), 5)
                     end
                 end
             else
-                self:Notify("ℹ️ ข้อมูล", "ไม่ได้ใช้งาน Config", "ยังไม่ได้โหลด Config ใดๆ")
+                self:Notify("ℹ️ Info", "ไม่ได้ใช้งาน Config", "ยังไม่ได้โหลด Config ใดๆ")
             end
         end
     })

@@ -44,7 +44,15 @@ function SaveManager:SetupParser()
             end,
             Load = function(idx, data)
                 if self.Options[idx] then
-                    self.Options[idx]:SetValue(data.value)
+                    if data.multi and type(data.value) == "table" then
+                        local Value = {}
+                        for _,v in ipairs(data.value) do
+                            Value[v] = true
+                        end
+                        self.Options[idx]:SetValue(Value)
+                    else
+                        self.Options[idx]:SetValue(data.value)
+                    end
                 end
             end,
         },

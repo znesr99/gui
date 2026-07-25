@@ -2,6 +2,7 @@
 -- SaveManager System
 -- Version: 2.0.0
 -- Description: ระบบจัดการ Config ที่ใช้งานง่าย
+-- Make My : Ai DeepSeek & Zens
 --========================================================
 
 local SaveManager = {}
@@ -228,7 +229,7 @@ function SaveManager:Save(name, silent)
     self.CurrentConfig = name
     
     if not silent then
-        self:Notify("✅ Success", string.format("Saved Config: %s", name), 
+        self:Notify("✅ Success", string.format("บันทึก Config: %s", name), 
                    string.format("บันทึกการตั้งค่า %d รายการ", count))
     end
     
@@ -267,7 +268,7 @@ function SaveManager:Load(name, silent)
     self.CurrentConfig = name
     
     if not silent then
-        self:Notify("✅ Success", string.format("Loaded Config: %s", name), 
+        self:Notify("✅ Success", string.format("โหลด Config: %s", name), 
                    string.format("โหลดการตั้งค่า %d รายการ", count))
     end
     
@@ -283,7 +284,7 @@ function SaveManager:Delete(name, silent)
             self.CurrentConfig = nil
         end
         if not silent then
-            self:Notify("🗑️ Deleted", string.format("Deleted Config: %s", name), "")
+            self:Notify("🗑️ Deleted", string.format("ลบ Config: %s", name), "")
         end
         return true, "Config deleted"
     end
@@ -338,7 +339,7 @@ function SaveManager:LoadAutoloadConfig()
             local success = self:Load(name, true)
             if success then
                 self.AutoLoadEnabled = true
-                self:Notify("🔄 Auto Load", string.format("Loaded Config: %s", name), "โหลดอัตโนมัติสำเร็จ")
+                self:Notify("🔄 Auto Load", string.format("โหลด Config: %s", name), "โหลดอัตโนมัติสำเร็จ")
             end
         end
     end
@@ -352,7 +353,7 @@ function SaveManager:SetAutoload(name, silent)
         end
         self.AutoLoadEnabled = false
         if not silent then
-            self:Notify("🔓 Auto Load", "Auto Load Disabled", "")
+            self:Notify("🔓 Auto Load", "ปิดใช้งาน Auto Load", "")
         end
         return true
     end
@@ -368,7 +369,7 @@ function SaveManager:SetAutoload(name, silent)
     writefile(self.Folder .. "/settings/autoload.txt", name)
     self.AutoLoadEnabled = true
     if not silent then
-        self:Notify("🔒 Auto Load", string.format("Auto Load Enabled: %s", name), "จะโหลดอัตโนมัติเมื่อเปิดสคริปต์")
+        self:Notify("🔒 Auto Load", string.format("เปิดใช้งาน: %s", name), "จะโหลดอัตโนมัติเมื่อเปิดสคริปต์")
     end
     return true
 end
@@ -505,23 +506,20 @@ function SaveManager:BuildConfigSection(tab)
     
     -- Toggle Auto Load
     local currentAutoLoad = self:GetAutoloadConfig()
-    local autoToggle = autoSection:AddToggle("SaveManager_AutoLoad", {
+    autoSection:AddToggle("SaveManager_AutoLoad", {
         Title = "🔁 Enable Auto Load",
-        Description = currentAutoLoad and string.format("กำลังโหลด: %s", currentAutoLoad) or "ปิดใช้งาน",
+        Description = "เปิดออโต้โหลด",
         Default = currentAutoLoad ~= nil,
         Callback = function(value)
             if value then
                 local name = self.Options.SaveManager_ConfigList.Value
                 if not name then
                     self:Notify("⚠️ Warning", "กรุณาเลือก Config", "เลือก Config ที่ต้องการ Auto Load")
-                    autoToggle:SetValue(false)
                     return
                 end
                 self:SetAutoload(name)
-                autoToggle:SetDesc(string.format("กำลังโหลด: %s", name))
             else
                 self:SetAutoload(nil)
-                autoToggle:SetDesc("ปิดใช้งาน")
             end
         end
     })
@@ -541,7 +539,7 @@ function SaveManager:BuildConfigSection(tab)
                         local info = data.info
                         local timeStr = os.date("%d/%m/%Y %H:%M:%S", info.created)
                         self:Notify("ℹ️ Config Info", 
-                                   string.format("Name: %s", self.CurrentConfig),
+                                   string.format("ชื่อ: %s", self.CurrentConfig),
                                    string.format("สร้างเมื่อ: %s\nเวอร์ชัน: %s", timeStr, info.version or "1.0"), 5)
                     end
                 end

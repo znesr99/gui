@@ -455,30 +455,35 @@ function SaveManager:BuildConfigSection(tab)
     })
     
     -- ช่องใส่ชื่อ Config
-    local nameInput = tab:AddInput("SaveManager_ConfigName", { 
-        Title = "✏️ Config Name",
-        Description = "ตั้งชื่อ Config ใหม่",
-        Default = "",
-        Placeholder = "เช่น: แม็พโจรสลัด, บอทเลเวล 100",
-        Finished = true
+    local nameInput = tab:AddInput("SaveManager_ConfigName", {
+    Title = "✏️ Config Name",
+    Description = "ตั้งชื่อ Config ใหม่",
+    Default = "",
+    Placeholder = "เช่น: Kuy49, abc321",
+    Finished = false
     })
     
     -- ปุ่มบันทึก
     tab:AddButton({
-        Title = "💾 Save Config",
-        Description = "บันทึกการตั้งค่าปัจจุบัน",
-        Callback = function()
-            local name = self.Options.SaveManager_ConfigName.Value
-            if name == "" then
-                self:Notify("⚠️ Warning", "กรุณาใส่ชื่อ Config", "ชื่อห้ามเว้นว่าง")
-                return
-            end
-            self:Save(name)
+    Title = "💾 Save Config",
+    Description = "บันทึกการตั้งค่าปัจจุบัน",
+    Callback = function()
+        local name = tostring(self.Options.SaveManager_ConfigName.Value or ""):gsub("^%s+", ""):gsub("%s+$", "")
+
+        if name == "" then
+            self:Notify("⚠️ Warning", "กรุณาใส่ชื่อ Config", "ชื่อห้ามเว้นว่าง")
+            return
+        end
+
+        local success = self:Save(name)
+
+        if success then
             local newList = self:RefreshConfigList()
             configDropdown:SetValues(newList)
             configDropdown:SetValue(name)
         end
-    })
+    end
+})
     
     -- ปุ่มโหลด
     tab:AddButton({

@@ -892,10 +892,16 @@ function Library:CreateWindow(options)
                 PageHighlight.BackgroundTransparency = 0
             end
 
-            function PageObj:CreateSection(sectionName)
-                local targetColumn = PageObj.Left and LeftColumn or RightColumn
-                PageObj.Left = not PageObj.Left
-
+            function PageObj:CreateSection(sectionName, side)
+                local targetColumn
+                if side == "Left" or side == "left" then
+                    targetColumn = LeftColumn
+                elseif side == "Right" or side == "right" then
+                    targetColumn = RightColumn
+                else
+                    targetColumn = PageObj.Left and LeftColumn or RightColumn
+                    PageObj.Left = not PageObj.Left
+                end
                 local SectionContainer = Create("Frame", {Parent = targetColumn, BackgroundColor3 = CardColor, Size = UDim2.new(1, 0, 0, 30), AutomaticSize = Enum.AutomaticSize.Y, ClipsDescendants = true})
                 Create("UICorner", {Parent = SectionContainer, CornerRadius = UDim.new(0, 6)})
                 

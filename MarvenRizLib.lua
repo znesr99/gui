@@ -958,6 +958,65 @@ function Library:CreateWindow(options)
                     AddInfoIcon(BtnFrame, UDim2.new(1, -40, 0.5, -8), infoData)
                 end
 
+                function Elements:AddParagraph(title, content, infoData)
+                    local hasTitle = title ~= nil and title ~= ""
+
+                    local ParaFrame = Create("Frame", {
+                        Parent = ItemContainer,
+                        BackgroundColor3 = BackgroundColor,
+                        Size = UDim2.new(1, 0, 0, 0),
+                        AutomaticSize = Enum.AutomaticSize.Y
+                    })
+                    Create("UICorner", {Parent = ParaFrame, CornerRadius = UDim.new(0, 4)})
+                    Create("UIStroke", {Parent = ParaFrame, Color = Color3.fromRGB(45, 45, 50), Thickness = 1})
+                    Create("UIPadding", {Parent = ParaFrame, PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 30), PaddingTop = UDim.new(0, 8), PaddingBottom = UDim.new(0, 8)})
+
+                    -- Title label always exists (hidden/zero-height when empty) so SetTitle works even if no title was set initially
+                    local TitleLbl = Create("TextLabel", {
+                        Parent = ParaFrame, Text = title or "", Font = Enum.Font.GothamBold, TextSize = 13,
+                        TextColor3 = TextColor, BackgroundTransparency = 1,
+                        Size = UDim2.new(1, 0, 0, hasTitle and 16 or 0), Position = UDim2.new(0, 0, 0, 0),
+                        TextXAlignment = Enum.TextXAlignment.Left, TextWrapped = true,
+                        Visible = hasTitle, ClipsDescendants = true
+                    })
+
+                    local ContentLbl = Create("TextLabel", {
+                        Parent = ParaFrame, Text = content or "", Font = Enum.Font.Gotham, TextSize = 12,
+                        TextColor3 = SubTextColor, BackgroundTransparency = 1,
+                        Size = UDim2.new(1, 0, 0, 0),
+                        Position = hasTitle and UDim2.new(0, 0, 0, 20) or UDim2.new(0, 0, 0, 0),
+                        TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top,
+                        TextWrapped = true, AutomaticSize = Enum.AutomaticSize.Y
+                    })
+
+                    AddInfoIcon(ParaFrame, UDim2.new(1, -22, 0, 6), infoData)
+
+                    local function SetTitle(_self, t)
+                        if t == nil and _self ~= nil and type(_self) ~= "table" then
+                            -- called as SetTitle(t) without colon
+                            t = _self
+                        end
+                        local show = t ~= nil and t ~= ""
+                        TitleLbl.Text = t or ""
+                        TitleLbl.Visible = show
+                        Tween(TitleLbl, {Size = UDim2.new(1, 0, 0, show and 16 or 0)}, 0.2)
+                        Tween(ContentLbl, {Position = show and UDim2.new(0, 0, 0, 20) or UDim2.new(0, 0, 0, 0)}, 0.2)
+                    end
+
+                    local function SetContent(_self, c)
+                        if c == nil and _self ~= nil and type(_self) ~= "table" then
+                            c = _self
+                        end
+                        ContentLbl.Text = c or ""
+                    end
+
+                    local ParaHandle = {}
+                    ParaHandle.SetTitle = SetTitle
+                    ParaHandle.SetContent = SetContent
+
+                    return ParaHandle
+                end
+
                 function Elements:AddToggle(name, default, callback, infoData)
                     local state = default or false
                     local TogFrame = Create("Frame", {Parent = ItemContainer, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 24)})
@@ -1604,6 +1663,12 @@ function Library:CreateWindow(options)
                     config = config or {}
                     return self:AddCopyButton(config.Title, config.Text or config.Content, BuildInfo(config))
                 end
+
+                function Elements:Paragraph(config)
+                    config = config or {}
+                    return self:AddParagraph(config.Title, config.Content, BuildInfo(config))
+                end
+                -- Elements:Paragraph(...) returns { SetTitle = function(text) ... end, SetContent = function(text) ... end }
 
                 function Elements:Toggle(config)
                     config = config or {}

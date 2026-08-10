@@ -1099,8 +1099,7 @@ function Library:CreateWindow(options)
                     end
                     local dropped = false
                     local optionButtons = {}
-                    local maxVisible = math.min(#options, 3)
-                    local listHeight = maxVisible * 25
+                    local listHeight = #options * 25
                     local dropOpenHeight = 50 + 32 + listHeight
                     
                     local DropFrame = Create("Frame", {Parent = ItemContainer, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 50), ClipsDescendants = true})

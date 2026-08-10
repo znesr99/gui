@@ -1090,8 +1090,13 @@ function Library:CreateWindow(options)
                     Window.ConfigElements[name] = { Set = internalSet, Get = function() return val end }
                 end
 
-                function Elements:AddDropdown(name, options, isMulti, callback, infoData)
-                    local selected = isMulti and {} or (options[1] or nil)
+                function Elements:AddDropdown(name, options, isMulti, default, callback, infoData)
+                    local selected
+                    if isMulti then
+                        selected = (type(default) == "table") and default or {}
+                    else
+                        selected = (default ~= nil) and default or (options[1] or nil)
+                    end
                     local dropped = false
                     local optionButtons = {}
                     local maxVisible = math.min(#options, 3)
@@ -1145,6 +1150,7 @@ function Library:CreateWindow(options)
 
                     for _, opt in pairs(options) do
                         local isInitialSelected = (not isMulti and selected == opt)
+                            or (isMulti and type(selected) == "table" and table.find(selected, opt) ~= nil)
                         local OptBtn = Create("TextButton", {Parent = ListFrame, Text = opt, Font = Enum.Font.Gotham, TextSize = 12, TextColor3 = isInitialSelected and TextColor or SubTextColor, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 25), AutoButtonColor = false})
                         local Check = Create("Frame", {Parent = OptBtn, BackgroundColor3 = AccentColor, Size = isInitialSelected and UDim2.new(1, 0, 1, 0) or UDim2.new(0, 0, 1, 0), BackgroundTransparency = 0.8})
                         table.insert(optionButtons, OptBtn)
@@ -1206,10 +1212,10 @@ function Library:CreateWindow(options)
                     Window.ConfigElements[name] = { Set = internalSet, Get = function() return selected end }
                 end
 
-                function Elements:AddTextbox(name, placeholder, callback, infoData)
+                function Elements:AddTextbox(name, placeholder, default, callback, infoData)
                     local TxtFrame = Create("Frame", {Parent = ItemContainer, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 50)})
                     Create("TextLabel", {Parent = TxtFrame, Text = name, Font = Enum.Font.Gotham, TextSize = 12, TextColor3 = SubTextColor, BackgroundTransparency = 1, Size = UDim2.new(1, -20, 0, 15), Position = UDim2.new(0, 10, 0, 0), TextXAlignment = Enum.TextXAlignment.Left})
-                    local Input = Create("TextBox", {Parent = TxtFrame, PlaceholderText = placeholder or "Type here...", Text = "", Font = Enum.Font.Gotham, TextSize = 12, TextColor3 = TextColor, BackgroundColor3 = BackgroundColor, Size = UDim2.new(1, -20, 0, 26), Position = UDim2.new(0, 10, 0, 20), TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false})
+                    local Input = Create("TextBox", {Parent = TxtFrame, PlaceholderText = placeholder or "Type here...", Text = default ~= nil and tostring(default) or "", Font = Enum.Font.Gotham, TextSize = 12, TextColor3 = TextColor, BackgroundColor3 = BackgroundColor, Size = UDim2.new(1, -20, 0, 26), Position = UDim2.new(0, 10, 0, 20), TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false})
                     Create("UIPadding", {Parent = Input, PaddingLeft = UDim.new(0, 8)})
                     Create("UICorner", {Parent = Input, CornerRadius = UDim.new(0, 4)})
                     local Stroke = Create("UIStroke", {Parent = Input, Color = Color3.fromRGB(45, 45, 50), Thickness = 1})
@@ -1692,12 +1698,12 @@ function Library:CreateWindow(options)
 
                 function Elements:Dropdown(config)
                     config = config or {}
-                    return self:AddDropdown(config.Title, config.Options, config.Multi, config.Callback, BuildInfo(config))
+                    return self:AddDropdown(config.Title, config.Options, config.Multi, config.Value, config.Callback, BuildInfo(config))
                 end
 
                 function Elements:Textbox(config)
                     config = config or {}
-                    return self:AddTextbox(config.Title, config.Placeholder, config.Callback, BuildInfo(config))
+                    return self:AddTextbox(config.Title, config.Placeholder, config.Value, config.Callback, BuildInfo(config))
                 end
 
                 function Elements:ColorPicker(config)

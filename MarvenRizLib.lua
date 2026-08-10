@@ -961,15 +961,25 @@ function Library:CreateWindow(options)
                 function Elements:AddParagraph(title, content, infoData)
                     local hasTitle = title ~= nil and title ~= ""
 
-                    local ParaFrame = Create("Frame", {
+                    -- Outer wrapper: full width, transparent, just for list spacing (same pattern as Button/Toggle frames)
+                    local ParaWrap = Create("Frame", {
                         Parent = ItemContainer,
-                        BackgroundColor3 = BackgroundColor,
+                        BackgroundTransparency = 1,
                         Size = UDim2.new(1, 0, 0, 0),
                         AutomaticSize = Enum.AutomaticSize.Y
                     })
-                    Create("UICorner", {Parent = ParaFrame, CornerRadius = UDim.new(0, 4)})
+
+                    -- Inner card: inset 10px left/right so it never touches the Section edges
+                    local ParaFrame = Create("Frame", {
+                        Parent = ParaWrap,
+                        BackgroundColor3 = BackgroundColor,
+                        Position = UDim2.new(0, 10, 0, 0),
+                        Size = UDim2.new(1, -20, 0, 0),
+                        AutomaticSize = Enum.AutomaticSize.Y
+                    })
+                    Create("UICorner", {Parent = ParaFrame, CornerRadius = UDim.new(0, 6)})
                     Create("UIStroke", {Parent = ParaFrame, Color = Color3.fromRGB(45, 45, 50), Thickness = 1})
-                    Create("UIPadding", {Parent = ParaFrame, PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 30), PaddingTop = UDim.new(0, 8), PaddingBottom = UDim.new(0, 8)})
+                    Create("UIPadding", {Parent = ParaFrame, PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 32), PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10)})
 
                     -- Title label always exists (hidden/zero-height when empty) so SetTitle works even if no title was set initially
                     local TitleLbl = Create("TextLabel", {
@@ -984,12 +994,12 @@ function Library:CreateWindow(options)
                         Parent = ParaFrame, Text = content or "", Font = Enum.Font.Gotham, TextSize = 12,
                         TextColor3 = SubTextColor, BackgroundTransparency = 1,
                         Size = UDim2.new(1, 0, 0, 0),
-                        Position = hasTitle and UDim2.new(0, 0, 0, 20) or UDim2.new(0, 0, 0, 0),
+                        Position = hasTitle and UDim2.new(0, 0, 0, 22) or UDim2.new(0, 0, 0, 0),
                         TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top,
-                        TextWrapped = true, AutomaticSize = Enum.AutomaticSize.Y
+                        TextWrapped = true, AutomaticSize = Enum.AutomaticSize.Y, LineHeight = 1.15
                     })
 
-                    AddInfoIcon(ParaFrame, UDim2.new(1, -22, 0, 6), infoData)
+                    AddInfoIcon(ParaFrame, UDim2.new(1, -24, 0, 8), infoData)
 
                     local function SetTitle(_self, t)
                         if t == nil and _self ~= nil and type(_self) ~= "table" then
@@ -1000,7 +1010,7 @@ function Library:CreateWindow(options)
                         TitleLbl.Text = t or ""
                         TitleLbl.Visible = show
                         Tween(TitleLbl, {Size = UDim2.new(1, 0, 0, show and 16 or 0)}, 0.2)
-                        Tween(ContentLbl, {Position = show and UDim2.new(0, 0, 0, 20) or UDim2.new(0, 0, 0, 0)}, 0.2)
+                        Tween(ContentLbl, {Position = show and UDim2.new(0, 0, 0, 22) or UDim2.new(0, 0, 0, 0)}, 0.2)
                     end
 
                     local function SetContent(_self, c)

@@ -983,7 +983,7 @@ function Library:CreateWindow(options)
 
                     -- Title label always exists (hidden/zero-height when empty) so SetTitle works even if no title was set initially
                     local TitleLbl = Create("TextLabel", {
-                        Parent = ParaFrame, Text = title or "", Font = Enum.Font.GothamBold, TextSize = 13,
+                        Parent = ParaFrame, Text = title or "", Font = Enum.Font.GothamBold, TextSize =10,
                         TextColor3 = TextColor, BackgroundTransparency = 1,
                         Size = UDim2.new(1, 0, 0, hasTitle and 16 or 0), Position = UDim2.new(0, 0, 0, 0),
                         TextXAlignment = Enum.TextXAlignment.Left, TextWrapped = true,
@@ -991,7 +991,7 @@ function Library:CreateWindow(options)
                     })
 
                     local ContentLbl = Create("TextLabel", {
-                        Parent = ParaFrame, Text = content or "", Font = Enum.Font.Gotham, TextSize = 12,
+                        Parent = ParaFrame, Text = content or "", Font = Enum.Font.Gotham, TextSize = 7,
                         TextColor3 = SubTextColor, BackgroundTransparency = 1,
                         Size = UDim2.new(1, 0, 0, 0),
                         Position = hasTitle and UDim2.new(0, 0, 0, 22) or UDim2.new(0, 0, 0, 0),

@@ -1049,7 +1049,11 @@ function Library:CreateWindow(options)
 
                     Lever.MouseButton1Click:Connect(function() internalSet(not state) end)
                     AddInfoIcon(TogFrame, UDim2.new(1, -70, 0.5, -8), infoData)
-                    
+
+                    -- Fire the callback once with the starting value so anything reading it
+                    -- externally isn't left nil until the user actually clicks the toggle
+                    if callback then callback(state) end
+
                     Window.ConfigElements[name] = { Set = internalSet, Get = function() return state end }
                 end
 
@@ -1087,6 +1091,10 @@ function Library:CreateWindow(options)
                     UserInputService.InputChanged:Connect(function(input) if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then Update(input) end end)
                     AddInfoIcon(SliFrame, UDim2.new(1, -65, 0, 0), infoData)
 
+                    -- Fire the callback once with the starting value so anything reading it
+                    -- externally isn't left nil until the user actually drags the slider
+                    if callback then callback(val) end
+
                     Window.ConfigElements[name] = { Set = internalSet, Get = function() return val end }
                 end
 
@@ -1099,7 +1107,12 @@ function Library:CreateWindow(options)
                     end
                     local dropped = false
                     local optionButtons = {}
-                    local listHeight = #options * 25
+                    local optionValues = {} -- parallel table: optionValues[btn] = original option value (any type)
+                    -- Unlimited options: the list always shows every option and scrolls.
+                    -- maxVisible only controls how many rows are visible before scrolling kicks in,
+                    -- it never truncates the actual option count.
+                    local maxVisible = math.min(#options, 6)
+                    local listHeight = math.max(maxVisible, 1) * 25
                     local dropOpenHeight = 50 + 32 + listHeight
                     
                     local DropFrame = Create("Frame", {Parent = ItemContainer, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 50), ClipsDescendants = true})
@@ -1117,17 +1130,30 @@ function Library:CreateWindow(options)
                     Create("UICorner", {Parent = SearchBox, CornerRadius = UDim.new(0, 4)})
                     local SearchStroke = Create("UIStroke", {Parent = SearchBox, Color = Color3.fromRGB(45, 45, 50), Thickness = 1})
 
-                    local ListFrame = Create("ScrollingFrame", {Parent = DropFrame, BackgroundColor3 = BackgroundColor, Size = UDim2.new(1, -20, 0, listHeight), Position = UDim2.new(0, 10, 0, 78), CanvasSize = UDim2.new(0, 0, 0, #options * 25), ScrollBarThickness = 2, ScrollBarImageColor3 = Color3.fromRGB(80, 80, 85), BorderSizePixel = 0})
+                    -- ScrollingFrame's CanvasSize is recalculated from the full list content below,
+                    -- so no matter how many options are passed in, they are all created and the
+                    -- user scrolls through them inside this fixed-height window.
+                    local ListFrame = Create("ScrollingFrame", {Parent = DropFrame, BackgroundColor3 = BackgroundColor, Size = UDim2.new(1, -20, 0, listHeight), Position = UDim2.new(0, 10, 0, 78), CanvasSize = UDim2.new(0, 0, 0, #options * 25), ScrollBarThickness = 3, ScrollBarImageColor3 = Color3.fromRGB(80, 80, 85), BorderSizePixel = 0, ScrollingDirection = Enum.ScrollingDirection.Y, ElasticBehavior = Enum.ElasticBehavior.Always})
                     Create("UICorner", {Parent = ListFrame, CornerRadius = UDim.new(0, 4)})
                     local DList = Create("UIListLayout", {Parent = ListFrame, SortOrder = Enum.SortOrder.LayoutOrder})
+
+                    -- Safe string conversion: options can be numbers, booleans, etc, not just strings.
+                    local function ToDisplay(v)
+                        if v == nil then return "" end
+                        return tostring(v)
+                    end
+
+                    local function ValuesEqual(a, b)
+                        return a == b
+                    end
 
                     local function UpdateText()
                         if isMulti then
                             local txt = ""
-                            for _, v in pairs(selected) do txt = txt .. v .. ", " end
+                            for _, v in pairs(selected) do txt = txt .. ToDisplay(v) .. ", " end
                             MainBtn.Text = txt == "" and "Select Options..." or txt:sub(1, -3)
                         else
-                            MainBtn.Text = selected or "Select..."
+                            MainBtn.Text = (selected ~= nil) and ToDisplay(selected) or "Select..."
                         end
                     end
 
@@ -1135,11 +1161,12 @@ function Library:CreateWindow(options)
                         selected = v
                         UpdateText()
                         for _, btn in ipairs(optionButtons) do
+                            local optVal = optionValues[btn]
                             local isSel = false
                             if isMulti then
-                                isSel = table.find(selected, btn.Text) ~= nil
+                                isSel = type(selected) == "table" and table.find(selected, optVal) ~= nil
                             else
-                                isSel = (selected == btn.Text)
+                                isSel = ValuesEqual(selected, optVal)
                             end
                             Tween(btn, {TextColor3 = isSel and TextColor or SubTextColor}, 0.2)
                             Tween(btn:FindFirstChild("Frame"), {Size = isSel and UDim2.new(1, 0, 1, 0) or UDim2.new(0, 0, 1, 0)}, 0.2)
@@ -1148,16 +1175,18 @@ function Library:CreateWindow(options)
                     end
 
                     for _, opt in pairs(options) do
-                        local isInitialSelected = (not isMulti and selected == opt)
+                        local isInitialSelected = (not isMulti and ValuesEqual(selected, opt))
                             or (isMulti and type(selected) == "table" and table.find(selected, opt) ~= nil)
-                        local OptBtn = Create("TextButton", {Parent = ListFrame, Text = opt, Font = Enum.Font.Gotham, TextSize = 12, TextColor3 = isInitialSelected and TextColor or SubTextColor, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 25), AutoButtonColor = false})
+                        local OptBtn = Create("TextButton", {Parent = ListFrame, Text = ToDisplay(opt), Font = Enum.Font.Gotham, TextSize = 12, TextColor3 = isInitialSelected and TextColor or SubTextColor, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 25), AutoButtonColor = false})
                         local Check = Create("Frame", {Parent = OptBtn, BackgroundColor3 = AccentColor, Size = isInitialSelected and UDim2.new(1, 0, 1, 0) or UDim2.new(0, 0, 1, 0), BackgroundTransparency = 0.8})
                         table.insert(optionButtons, OptBtn)
+                        optionValues[OptBtn] = opt
                         
                         OptBtn.MouseButton1Click:Connect(function()
                             if isMulti then
-                                if table.find(selected, opt) then
-                                    table.remove(selected, table.find(selected, opt))
+                                local idx = table.find(selected, opt)
+                                if idx then
+                                    table.remove(selected, idx)
                                 else
                                     table.insert(selected, opt)
                                 end
@@ -1176,7 +1205,7 @@ function Library:CreateWindow(options)
                     SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
                         local q = SearchBox.Text:lower()
                         for _, btn in ipairs(optionButtons) do
-                            if q == "" or string.find(btn.Text:lower(), q) then btn.Visible = true else btn.Visible = false end
+                            if q == "" or string.find(btn.Text:lower(), q, 1, true) then btn.Visible = true else btn.Visible = false end
                         end
                     end)
 
@@ -1208,6 +1237,10 @@ function Library:CreateWindow(options)
                     end)
                     AddInfoIcon(DropFrame, UDim2.new(1, -25, 0, 0), infoData)
 
+                    -- Fire the callback once with the starting selection so anything reading it
+                    -- externally isn't left nil until the user actually opens the dropdown
+                    if callback then callback(selected) end
+
                     Window.ConfigElements[name] = { Set = internalSet, Get = function() return selected end }
                 end
 
@@ -1226,7 +1259,11 @@ function Library:CreateWindow(options)
 
                     Input.FocusLost:Connect(function(enterPressed) internalSet(Input.Text) end)
                     AddInfoIcon(TxtFrame, UDim2.new(1, -25, 0, 0), infoData)
-                    
+
+                    -- Fire the callback once with the starting value so anything reading it
+                    -- externally isn't left nil until the user actually edits the textbox
+                    if callback then callback(Input.Text) end
+
                     Window.ConfigElements[name] = { Set = internalSet, Get = function() return Input.Text end }
                 end
 
@@ -1328,6 +1365,10 @@ function Library:CreateWindow(options)
 
                     DisplayBtn.MouseButton1Click:Connect(function() dropped = not dropped Tween(CFrame, {Size = UDim2.new(1, 0, 0, dropped and 185 or 30)}, 0.3) end)
                     AddInfoIcon(CFrame, UDim2.new(1, -65, 0, 7), infoData)
+
+                    -- Fire the callback once with the starting color so anything reading it
+                    -- externally isn't left nil until the user actually opens the picker
+                    if callback then callback(color) end
 
                     Window.ConfigElements[name] = { Set = internalSet, Get = function() return color:ToHex() end }
                 end

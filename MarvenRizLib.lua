@@ -1107,7 +1107,7 @@ function Library:CreateWindow(options)
                     end
                     local dropped = false
                     local optionButtons = {}
-                    local optionValues = {}
+                    local optionValues = {} 
                     local maxVisible = math.min(#options, 6)
                     local listHeight = math.max(maxVisible, 1) * 25
                     local dropOpenHeight = 50 + 32 + listHeight

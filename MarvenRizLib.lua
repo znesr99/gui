@@ -1107,11 +1107,8 @@ function Library:CreateWindow(options)
                     end
                     local dropped = false
                     local optionButtons = {}
-                    local optionValues = {} -- parallel table: optionValues[btn] = original option value (any type)
-                    -- Unlimited options: the list always shows every option and scrolls.
-                    -- maxVisible only controls how many rows are visible before scrolling kicks in,
-                    -- it never truncates the actual option count.
-                    local maxVisible = math.min(#options, 100)
+                    local optionValues = {}
+                    local maxVisible = math.min(#options, 6)
                     local listHeight = math.max(maxVisible, 1) * 25
                     local dropOpenHeight = 50 + 32 + listHeight
                     

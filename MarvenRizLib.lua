@@ -1111,8 +1111,8 @@ function Library:CreateWindow(options)
                     -- Unlimited options: the list always shows every option and scrolls.
                     -- maxVisible only controls how many rows are visible before scrolling kicks in,
                     -- it never truncates the actual option count.
-                    local maxVisible = math.min(#options, 6)
-                    local listHeight = math.max(maxVisible, 1) * 1000
+                    local maxVisible = math.min(#options, 100)
+                    local listHeight = math.max(maxVisible, 1) * 25
                     local dropOpenHeight = 50 + 32 + listHeight
                     
                     local DropFrame = Create("Frame", {Parent = ItemContainer, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 50), ClipsDescendants = true})

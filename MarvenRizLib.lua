@@ -988,7 +988,7 @@ function Library:CreateWindow(options)
                     })
 
                     local ContentLbl = Create("TextLabel", {
-                        Parent = ParaFrame, Text = content or "", Font = Enum.Font.Gotham, TextSize = 7,
+                        Parent = ParaFrame, Text = content or "", Font = Enum.Font.Gotham, TextSize = 8.5,
                         TextColor3 = SubTextColor, BackgroundTransparency = 1,
                         Size = UDim2.new(1, 0, 0, 0),
                         Position = hasTitle and UDim2.new(0, 0, 0, 22) or UDim2.new(0, 0, 0, 0),

@@ -961,6 +961,7 @@ function Library:CreateWindow(options)
                 function Elements:AddParagraph(title, content, infoData)
                     local hasTitle = title ~= nil and title ~= ""
 
+                    -- Outer wrapper: full width, transparent, just for list spacing (same pattern as Button/Toggle frames)
                     local ParaWrap = Create("Frame", {
                         Parent = ItemContainer,
                         BackgroundTransparency = 1,
@@ -968,6 +969,7 @@ function Library:CreateWindow(options)
                         AutomaticSize = Enum.AutomaticSize.Y
                     })
 
+                    -- Inner card: inset 10px left/right so it never touches the Section edges
                     local ParaFrame = Create("Frame", {
                         Parent = ParaWrap,
                         BackgroundColor3 = BackgroundColor,
@@ -979,6 +981,7 @@ function Library:CreateWindow(options)
                     Create("UIStroke", {Parent = ParaFrame, Color = Color3.fromRGB(45, 45, 50), Thickness = 1})
                     Create("UIPadding", {Parent = ParaFrame, PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 32), PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10)})
 
+                    -- Title label always exists (hidden/zero-height when empty) so SetTitle works even if no title was set initially
                     local TitleLbl = Create("TextLabel", {
                         Parent = ParaFrame, Text = title or "", Font = Enum.Font.GothamBold, TextSize =14,
                         TextColor3 = TextColor, BackgroundTransparency = 1,
@@ -1000,6 +1003,7 @@ function Library:CreateWindow(options)
 
                     local function SetTitle(_self, t)
                         if t == nil and _self ~= nil and type(_self) ~= "table" then
+                            -- called as SetTitle(t) without colon
                             t = _self
                         end
                         local show = t ~= nil and t ~= ""
@@ -1046,6 +1050,8 @@ function Library:CreateWindow(options)
                     Lever.MouseButton1Click:Connect(function() internalSet(not state) end)
                     AddInfoIcon(TogFrame, UDim2.new(1, -70, 0.5, -8), infoData)
 
+                    -- Fire the callback once with the starting value so anything reading it
+                    -- externally isn't left nil until the user actually clicks the toggle
                     if callback then callback(state) end
 
                     Window.ConfigElements[name] = { Set = internalSet, Get = function() return state end }
@@ -1085,6 +1091,8 @@ function Library:CreateWindow(options)
                     UserInputService.InputChanged:Connect(function(input) if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then Update(input) end end)
                     AddInfoIcon(SliFrame, UDim2.new(1, -65, 0, 0), infoData)
 
+                    -- Fire the callback once with the starting value so anything reading it
+                    -- externally isn't left nil until the user actually drags the slider
                     if callback then callback(val) end
 
                     Window.ConfigElements[name] = { Set = internalSet, Get = function() return val end }
@@ -1099,10 +1107,12 @@ function Library:CreateWindow(options)
                     end
                     local dropped = false
                     local optionButtons = {}
-                    local optionValues = {}
-                    local maxVisible = 8
-                    local listHeight = math.min(#options, maxVisible) * 25
-                    listHeight = math.max(listHeight, 25)
+                    local optionValues = {} -- parallel table: optionValues[btn] = original option value (any type)
+                    -- Unlimited options: the list always shows every option and scrolls.
+                    -- maxVisible only controls how many rows are visible before scrolling kicks in,
+                    -- it never truncates the actual option count.
+                    local maxVisible = math.min(#options, 6)
+                    local listHeight = math.max(maxVisible, 1) * 1000
                     local dropOpenHeight = 50 + 32 + listHeight
                     
                     local DropFrame = Create("Frame", {Parent = ItemContainer, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 50), ClipsDescendants = true})
@@ -1120,10 +1130,14 @@ function Library:CreateWindow(options)
                     Create("UICorner", {Parent = SearchBox, CornerRadius = UDim.new(0, 4)})
                     local SearchStroke = Create("UIStroke", {Parent = SearchBox, Color = Color3.fromRGB(45, 45, 50), Thickness = 1})
 
+                    -- ScrollingFrame's CanvasSize is recalculated from the full list content below,
+                    -- so no matter how many options are passed in, they are all created and the
+                    -- user scrolls through them inside this fixed-height window.
                     local ListFrame = Create("ScrollingFrame", {Parent = DropFrame, BackgroundColor3 = BackgroundColor, Size = UDim2.new(1, -20, 0, listHeight), Position = UDim2.new(0, 10, 0, 78), CanvasSize = UDim2.new(0, 0, 0, #options * 25), ScrollBarThickness = 3, ScrollBarImageColor3 = Color3.fromRGB(80, 80, 85), BorderSizePixel = 0, ScrollingDirection = Enum.ScrollingDirection.Y, ElasticBehavior = Enum.ElasticBehavior.Always})
                     Create("UICorner", {Parent = ListFrame, CornerRadius = UDim.new(0, 4)})
                     local DList = Create("UIListLayout", {Parent = ListFrame, SortOrder = Enum.SortOrder.LayoutOrder})
 
+                    -- Safe string conversion: options can be numbers, booleans, etc, not just strings.
                     local function ToDisplay(v)
                         if v == nil then return "" end
                         return tostring(v)
@@ -1223,6 +1237,8 @@ function Library:CreateWindow(options)
                     end)
                     AddInfoIcon(DropFrame, UDim2.new(1, -25, 0, 0), infoData)
 
+                    -- Fire the callback once with the starting selection so anything reading it
+                    -- externally isn't left nil until the user actually opens the dropdown
                     if callback then callback(selected) end
 
                     Window.ConfigElements[name] = { Set = internalSet, Get = function() return selected end }
@@ -1244,6 +1260,8 @@ function Library:CreateWindow(options)
                     Input.FocusLost:Connect(function(enterPressed) internalSet(Input.Text) end)
                     AddInfoIcon(TxtFrame, UDim2.new(1, -25, 0, 0), infoData)
 
+                    -- Fire the callback once with the starting value so anything reading it
+                    -- externally isn't left nil until the user actually edits the textbox
                     if callback then callback(Input.Text) end
 
                     Window.ConfigElements[name] = { Set = internalSet, Get = function() return Input.Text end }
@@ -1348,6 +1366,8 @@ function Library:CreateWindow(options)
                     DisplayBtn.MouseButton1Click:Connect(function() dropped = not dropped Tween(CFrame, {Size = UDim2.new(1, 0, 0, dropped and 185 or 30)}, 0.3) end)
                     AddInfoIcon(CFrame, UDim2.new(1, -65, 0, 7), infoData)
 
+                    -- Fire the callback once with the starting color so anything reading it
+                    -- externally isn't left nil until the user actually opens the picker
                     if callback then callback(color) end
 
                     Window.ConfigElements[name] = { Set = internalSet, Get = function() return color:ToHex() end }
@@ -1704,6 +1724,7 @@ function Library:CreateWindow(options)
                     config = config or {}
                     return self:AddParagraph(config.Title, config.Content, BuildInfo(config))
                 end
+                -- Elements:Paragraph(...) returns { SetTitle = function(text) ... end, SetContent = function(text) ... end }
 
                 function Elements:Toggle(config)
                     config = config or {}

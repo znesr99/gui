@@ -241,7 +241,10 @@ function SaveManager:Load(name)
     if ok and type(data) == "table" then
         for k, v in pairs(data) do
             if self.Window.ConfigElements[k] and self.Window.ConfigElements[k].Set then
-                self.Window.ConfigElements[k].Set(v)
+                local setOk, setErr = pcall(function() self.Window.ConfigElements[k].Set(v) end)
+                if not setOk then
+                    warn("[SaveManager:Load] Skipped key '" .. tostring(k) .. "': " .. tostring(setErr))
+                end
             end
         end
         Library:Notify({Title = "Config Loaded", Description = "Loaded [" .. name .. "] successfully.", Duration = 3})
@@ -306,7 +309,10 @@ function SaveManager:LoadAutoloadConfig()
     if ok and type(fdata) == "table" then
         for k, v in pairs(fdata) do
             if self.Window.ConfigElements[k] and self.Window.ConfigElements[k].Set then
-                self.Window.ConfigElements[k].Set(v)
+                local setOk, setErr = pcall(function() self.Window.ConfigElements[k].Set(v) end)
+                if not setOk then
+                    warn("[SaveManager:LoadAutoloadConfig] Skipped key '" .. tostring(k) .. "': " .. tostring(setErr))
+                end
             end
         end
         Library:Notify({Title = "Autoload", Description = "Configuration loaded automatically.", Duration = 3})
@@ -1548,7 +1554,10 @@ function Library:CreateWindow(options)
                                     if s and type(data) == "table" then
                                         for k, v in pairs(data) do
                                             if Window.ConfigElements[k] and Window.ConfigElements[k].Set then
-                                                Window.ConfigElements[k].Set(v)
+                                                local setOk, setErr = pcall(function() Window.ConfigElements[k].Set(v) end)
+                                                if not setOk then
+                                                    warn("[Saves Loader] Skipped key '" .. tostring(k) .. "': " .. tostring(setErr))
+                                                end
                                             end
                                         end
                                         Library:Notify({Title = "Saves Loader", Description = "Successfully loaded " .. displayFName})

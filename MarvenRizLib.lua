@@ -1165,32 +1165,81 @@ function Library:CreateWindow(options)
                         if callback then callback(selected) end
                     end
 
-                    for _, opt in pairs(options) do
-                        local isInitialSelected = (not isMulti and ValuesEqual(selected, opt))
-                            or (isMulti and type(selected) == "table" and table.find(selected, opt) ~= nil)
-                        local OptBtn = Create("TextButton", {Parent = ListFrame, Text = ToDisplay(opt), Font = Enum.Font.Gotham, TextSize = 12, TextColor3 = isInitialSelected and TextColor or SubTextColor, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 25), AutoButtonColor = false})
-                        local Check = Create("Frame", {Parent = OptBtn, BackgroundColor3 = AccentColor, Size = isInitialSelected and UDim2.new(1, 0, 1, 0) or UDim2.new(0, 0, 1, 0), BackgroundTransparency = 0.8})
-                        table.insert(optionButtons, OptBtn)
-                        optionValues[OptBtn] = opt
-                        
-                        OptBtn.MouseButton1Click:Connect(function()
-                            if isMulti then
-                                local idx = table.find(selected, opt)
-                                if idx then
-                                    table.remove(selected, idx)
+                    local function RenderOptions(newOptions)
+                        options = newOptions or options
+
+                        for _, btn in ipairs(optionButtons) do
+                            btn:Destroy()
+                        end
+                        optionButtons = {}
+                        optionValues = {}
+
+                        for _, opt in pairs(options) do
+                            local isInitialSelected = (not isMulti and ValuesEqual(selected, opt))
+                                or (isMulti and type(selected) == "table" and table.find(selected, opt) ~= nil)
+                            local OptBtn = Create("TextButton", {Parent = ListFrame, Text = ToDisplay(opt), Font = Enum.Font.Gotham, TextSize = 12, TextColor3 = isInitialSelected and TextColor or SubTextColor, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 25), AutoButtonColor = false})
+                            local Check = Create("Frame", {Parent = OptBtn, BackgroundColor3 = AccentColor, Size = isInitialSelected and UDim2.new(1, 0, 1, 0) or UDim2.new(0, 0, 1, 0), BackgroundTransparency = 0.8})
+                            table.insert(optionButtons, OptBtn)
+                            optionValues[OptBtn] = opt
+
+                            OptBtn.MouseButton1Click:Connect(function()
+                                if isMulti then
+                                    local idx = table.find(selected, opt)
+                                    if idx then
+                                        table.remove(selected, idx)
+                                    else
+                                        table.insert(selected, opt)
+                                    end
+                                    internalSet(selected)
                                 else
-                                    table.insert(selected, opt)
+                                    internalSet(opt)
+                                    dropped = false
+                                    Tween(Arrow, {Rotation = 0}, 0.3)
+                                    Tween(DropFrame, {Size = UDim2.new(1, 0, 0, 50)}, 0.3)
+                                    SearchBox.Visible = false
                                 end
-                                internalSet(selected)
-                            else
-                                internalSet(opt)
-                                dropped = false
-                                Tween(Arrow, {Rotation = 0}, 0.3)
-                                Tween(DropFrame, {Size = UDim2.new(1, 0, 0, 50)}, 0.3)
-                                SearchBox.Visible = false
-                            end
-                        end)
+                            end)
+                        end
+
+                        maxVisible = math.min(#options, 6)
+                        listHeight = math.max(maxVisible, 1) * 25
+
+                        ListFrame.CanvasSize = UDim2.new(0, 0, 0, DList.AbsoluteContentSize.Y)
+
+                        if dropped then
+                            local dynamicHeight = math.min(DList.AbsoluteContentSize.Y, listHeight)
+                            local newOpenHeight = 50 + 32 + dynamicHeight
+                            ListFrame.Size = UDim2.new(1, -20, 0, dynamicHeight)
+                            Tween(DropFrame, {Size = UDim2.new(1, 0, 0, newOpenHeight)}, 0.1)
+                        end
                     end
+
+                    local function RefreshOptions(newOptions, preserveSelection)
+                        newOptions = newOptions or options
+                        preserveSelection = (preserveSelection == nil) and true or preserveSelection
+
+                        if isMulti then
+                            if preserveSelection and type(selected) == "table" then
+                                local kept = {}
+                                for _, v in ipairs(selected) do
+                                    if table.find(newOptions, v) then table.insert(kept, v) end
+                                end
+                                selected = kept
+                            else
+                                selected = {}
+                            end
+                        else
+                            if not (preserveSelection and table.find(newOptions, selected)) then
+                                selected = newOptions[1]
+                            end
+                        end
+
+                        RenderOptions(newOptions)
+                        UpdateText()
+                        if callback then callback(selected) end
+                    end
+
+                    RenderOptions(options)
                     UpdateText()
 
                     SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
@@ -1231,6 +1280,16 @@ function Library:CreateWindow(options)
                     if callback then callback(selected) end
 
                     Window.ConfigElements[name] = { Set = internalSet, Get = function() return selected end }
+
+                    local DropdownHandle = {}
+                    DropdownHandle.Refresh = function(_self, newOptions, preserveSelection)
+                        RefreshOptions(newOptions, preserveSelection)
+                    end
+                    DropdownHandle.RefreshOptions = DropdownHandle.Refresh
+                    DropdownHandle.SetOptions = DropdownHandle.Refresh
+                    DropdownHandle.Set = internalSet
+                    DropdownHandle.Get = function() return selected end
+                    return DropdownHandle
                 end
 
                 function Elements:AddTextbox(name, placeholder, default, callback, infoData)

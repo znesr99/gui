@@ -10,8 +10,8 @@ local LocalPlayer      = Players.LocalPlayer
 
 -- ================= Theme =================
 local Theme = {
-	Background = Color3.fromRGB(20, 20, 28),
-	Sidebar    = Color3.fromRGB(26, 26, 36),
+	Background = Color3.fromRGB(10, 10, 10),
+	Sidebar    = Color3.fromRGB(15, 15, 15),
 	Card       = Color3.fromRGB(32, 32, 44),
 	Elevated   = Color3.fromRGB(38, 38, 52),
 	Select     = Color3.fromRGB(46, 46, 62),

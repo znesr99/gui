@@ -870,7 +870,8 @@ function RayVinzUI:_section(page, opts)
 	function section:Dropdown(o)
 		o = o or {}; autoCb(o); local options = o.Options or {}; local multi = o.Multi; local selected = multi and (o.Default or {}) or o.Default
 		local r = row(o.Description and 58 or 48); placeLabel(r, o.Title or "Dropdown", 150, o.Description)
-		local box = new("TextButton", { Text = "", AutoButtonColor = false, Size = UDim2.fromOffset(150, 30), AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -14, 0.5, 0), BackgroundColor3 = Theme.Field, BackgroundTransparency = 0.4 }, r); corner(box, 9); stroke(box, Theme.White, 0.8, 1)
+		local touch = UserInputService.TouchEnabled
+		local box = new("TextButton", { Text = "", AutoButtonColor = false, Size = UDim2.fromOffset(150, touch and 34 or 30), AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -14, 0.5, 0), BackgroundColor3 = Theme.Field, BackgroundTransparency = 0.4 }, r); corner(box, 9); stroke(box, Theme.White, 0.8, 1)
 		local valTxt = ltext(box, "Select...", 12, Theme.Text, FM); valTxt.Position = UDim2.new(0, 10, 0, 0); valTxt.Size = UDim2.new(1, -28, 1, 0)
 		iconImage(box, "chevron-down", UDim2.fromOffset(12, 12), Theme.SubText, UDim2.new(1, -8, 0.5, 0), Vector2.new(1, 0.5))
 		local reposition, closeList, doRefresh
@@ -880,49 +881,108 @@ function RayVinzUI:_section(page, opts)
 			rb.MouseButton1Click:Connect(function() if doRefresh then doRefresh() end end)
 			valTxt.Size = UDim2.new(1, -46, 1, 0)
 		end
-		-- CanvasGroup so we can fade the whole list on open/close
-		local list = new("CanvasGroup", { Visible = false, BackgroundColor3 = Theme.Elevated, BackgroundTransparency = 0.08, Size = UDim2.fromOffset(160, 0), AutomaticSize = Enum.AutomaticSize.Y, GroupTransparency = 1, ClipsDescendants = true, ZIndex = 50 }, self._gui); corner(list, 11); stroke(list, Theme.White, 0.78, 1); pad(list, 6, 6, 6, 6); vlist(list, 2)
-		-- fullscreen click-catcher: closes the list when you click/drag anywhere else
+		local itemH = touch and 38 or 30
+		local maxH = o.MaxHeight or (touch and 220 or 260)
+		local sf, sbox
+		local visibleCount = 0
+		local slide = -6
+		local list = new("CanvasGroup", { Visible = false, BackgroundColor3 = Theme.Elevated, BackgroundTransparency = 0.08, Size = UDim2.fromOffset(160, 100), GroupTransparency = 1, ZIndex = 50 }, self._gui); corner(list, 11); stroke(list, Theme.White, 0.78, 1); pad(list, 6, 6, 6, 6); vlist(list, 4)
+		local sc = new("ScrollingFrame", { BackgroundTransparency = 1, BorderSizePixel = 0, Size = UDim2.new(1, 0, 0, 0), CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y, ScrollingDirection = Enum.ScrollingDirection.Y, ScrollBarThickness = touch and 4 or 3, ScrollBarImageColor3 = Theme.Muted, ScrollBarImageTransparency = 0.3, ElasticBehavior = Enum.ElasticBehavior.Never, LayoutOrder = 1 }, list)
+		vlist(sc, 2)
 		local catcher = new("TextButton", { Name = "DropCatcher", Text = "", AutoButtonColor = false, BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Visible = false, ZIndex = 49 }, self._gui)
 		local tx, ty = 0, 0
 		local searchQuery = ""
+		local items = {}
 		local function display() if multi then valTxt.Text = #selected > 0 and table.concat(selected, ", ") or "None" else valTxt.Text = selected and tostring(selected) or "Select..." end end
+		local function isChosen(opt) if multi then return indexOf(selected, opt) ~= nil end return selected == opt end
+		local function styleItem(it)
+			local chosen = isChosen(it.opt)
+			it.btn.BackgroundTransparency = chosen and 0.82 or 1
+			it.lbl.TextColor3 = chosen and Theme.Text or Theme.SubText
+		end
+		local fit
 		local function rebuild()
-			for _, c in ipairs(list:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
+			for _, it in ipairs(items) do it.btn:Destroy() end
+			items = {}
+			visibleCount = 0
 			for i, opt in ipairs(options) do
 				if searchQuery == "" or string.find(string.lower(tostring(opt)), searchQuery, 1, true) then
-					local chosen = multi and (indexOf(selected, opt) ~= nil) or (selected == opt)
-					local ob = new("TextButton", { Text = "", AutoButtonColor = false, Size = UDim2.new(1, 0, 0, 30), BackgroundColor3 = Theme.Accent, BackgroundTransparency = chosen and 0.82 or 1, LayoutOrder = i + 1 }, list); corner(ob, 7)
-					local ol = ltext(ob, tostring(opt), 12, chosen and Theme.Text or Theme.SubText, FM); ol.Position = UDim2.new(0, 10, 0, 0); ol.Size = UDim2.new(1, -20, 1, 0)
+					visibleCount = visibleCount + 1
+					local ob = new("TextButton", { Text = "", AutoButtonColor = false, Size = UDim2.new(1, 0, 0, itemH), BackgroundColor3 = Theme.Accent, BackgroundTransparency = 1, LayoutOrder = i }, sc); corner(ob, 7)
+					local ol = ltext(ob, tostring(opt), touch and 13 or 12, Theme.SubText, FM); ol.Position = UDim2.new(0, 10, 0, 0); ol.Size = UDim2.new(1, -20, 1, 0)
+					local it = { btn = ob, lbl = ol, opt = opt }
+					items[#items + 1] = it
+					styleItem(it)
 					ob.MouseButton1Click:Connect(function()
-						if multi then local idx = indexOf(selected, opt) if idx then table.remove(selected, idx) else table.insert(selected, opt) end rebuild() else selected = opt closeList() end
-						display(); if o.Callback then task.spawn(o.Callback, selected) end
+						if multi then
+							local idx = indexOf(selected, opt)
+							if idx then table.remove(selected, idx) else table.insert(selected, opt) end
+							for _, x in ipairs(items) do styleItem(x) end
+						else
+							selected = opt
+							for _, x in ipairs(items) do styleItem(x) end
+							closeList()
+						end
+						display()
+						if o.Callback then task.spawn(o.Callback, selected) end
 					end)
 				end
 			end
+			if list.Visible and fit then fit(); list.Position = UDim2.fromOffset(tx, ty) end
 		end
-		-- search box for long lists (auto when > 6 options, or Search = true)
 		if o.Search or #options > 6 then
-			local sf = new("Frame", { BackgroundColor3 = Theme.Field, BackgroundTransparency = 0.3, Size = UDim2.new(1, 0, 0, 28), LayoutOrder = 0 }, list); corner(sf, 7); stroke(sf, Theme.White, 0.85, 1)
-			local sbox = new("TextBox", { BackgroundTransparency = 1, Size = UDim2.new(1, -16, 1, 0), Position = UDim2.new(0, 8, 0, 0), PlaceholderText = "Search...", PlaceholderColor3 = Theme.Muted, Text = "", TextColor3 = Theme.Text, Font = FM, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false }, sf)
+			sf = new("Frame", { BackgroundColor3 = Theme.Field, BackgroundTransparency = 0.3, Size = UDim2.new(1, 0, 0, touch and 34 or 28), LayoutOrder = 0 }, list); corner(sf, 7); stroke(sf, Theme.White, 0.85, 1)
+			sbox = new("TextBox", { BackgroundTransparency = 1, Size = UDim2.new(1, -16, 1, 0), Position = UDim2.new(0, 8, 0, 0), PlaceholderText = "Search...", PlaceholderColor3 = Theme.Muted, Text = "", TextColor3 = Theme.Text, Font = FM, TextSize = touch and 13 or 12, TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false }, sf)
 			sbox:GetPropertyChangedSignal("Text"):Connect(function() searchQuery = string.lower(sbox.Text); rebuild() end)
 		end
+		fit = function()
+			local gui = self._gui
+			local gp, gs = gui.AbsolutePosition, gui.AbsoluteSize
+			local ap, as = box.AbsolutePosition, box.AbsoluteSize
+			local margin = 8
+			local w = math.min(math.max(as.X, 150), gs.X - margin * 2)
+			local chrome = 12 + (sf and (sf.Size.Y.Offset + 4) or 0)
+			local content = math.max(visibleCount, 1) * (itemH + 2)
+			local want = math.min(content, maxH) + chrome
+			local boxTop = ap.Y - gp.Y
+			local boxBottom = boxTop + as.Y
+			local spaceBelow = gs.Y - boxBottom - 4 - margin
+			local spaceAbove = boxTop - 4 - margin
+			local below = not (want > spaceBelow and spaceAbove > spaceBelow)
+			local avail = below and spaceBelow or spaceAbove
+			local h = math.max(math.min(want, avail), math.min(chrome + itemH, avail))
+			sc.Size = UDim2.new(1, 0, 0, math.max(h - chrome, 0))
+			list.Size = UDim2.fromOffset(w, h)
+			tx = clamp(ap.X - gp.X + as.X - w, margin, math.max(gs.X - w - margin, margin))
+			ty = below and (boxBottom + 4) or (boxTop - 4 - h)
+			slide = below and -6 or 6
+		end
 		reposition = function()
-			tx, ty = box.AbsolutePosition.X, box.AbsolutePosition.Y + 34
-			list.Size = UDim2.fromOffset(math.max(box.AbsoluteSize.X, 150), 0)
+			fit()
 			if list.Visible then list.Position = UDim2.fromOffset(tx, ty) end
 		end
 		closeList = function()
 			catcher.Visible = false
-			tween(list, 0.14, { GroupTransparency = 1, Position = UDim2.fromOffset(tx, ty - 6) })
+			tween(list, 0.14, { GroupTransparency = 1, Position = UDim2.fromOffset(tx, ty + slide) })
 			task.delay(0.15, function() if list.GroupTransparency > 0.9 then list.Visible = false end end)
 		end
 		local function openList()
-			-- re-fetch options every open (e.g. eggs that appeared/disappeared in workspace)
 			if o.Refresh then local ok, nw = pcall(o.Refresh); if ok and type(nw) == "table" then options = nw end end
-			reposition(); rebuild()
-			list.GroupTransparency = 1; list.Position = UDim2.fromOffset(tx, ty - 6); list.Visible = true; catcher.Visible = true
-			tween(list, 0.16, { GroupTransparency = 0, Position = UDim2.fromOffset(tx, ty) }) -- fade + slide down
+			searchQuery = ""
+			if sbox and sbox.Text ~= "" then sbox.Text = "" end
+			rebuild(); fit()
+			sc.CanvasPosition = Vector2.zero
+			list.GroupTransparency = 1; list.Position = UDim2.fromOffset(tx, ty + slide); list.Visible = true; catcher.Visible = true
+			tween(list, 0.16, { GroupTransparency = 0, Position = UDim2.fromOffset(tx, ty) })
+			if not multi and selected then
+				task.spawn(function()
+					task.wait(0.03)
+					if not list.Visible then return end
+					for i, it in ipairs(items) do
+						if it.opt == selected then sc.CanvasPosition = Vector2.new(0, math.max((i - 1) * (itemH + 2) - itemH, 0)) break end
+					end
+				end)
+			end
 		end
 		box.MouseButton1Click:Connect(function() if list.Visible and list.GroupTransparency < 0.5 then closeList() else openList() end end)
 		catcher.MouseButton1Click:Connect(closeList)

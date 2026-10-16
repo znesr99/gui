@@ -323,8 +323,8 @@ function RayVinzUI:CreateWindow(opts)
 
 	-- title bar
 	local logoSize = clamp(tonumber(opts.LogoSize) or 44, 16, 96)
-	local function barH() return math.max(48, logoSize + 12) end
-	local title = new("Frame", { Name = "TitleBar", Size = UDim2.new(1, 0, 0, barH()), BackgroundTransparency = 1 }, win)
+	local function barH() return 48 end
+	local title = new("Frame", { Name = "TitleBar", Size = UDim2.new(1, 0, 0, barH()), BackgroundTransparency = 1, ZIndex = 5 }, win)
 	local lights = new("Frame", { Size = UDim2.fromOffset(52, 14), Position = UDim2.new(1, -16, 0.5, 0), AnchorPoint = Vector2.new(1, 0.5), BackgroundTransparency = 1 }, title)
 	new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), VerticalAlignment = Enum.VerticalAlignment.Center }, lights)
 	-- maximize toggle (green): swap between normal and a larger size
@@ -395,13 +395,15 @@ function RayVinzUI:CreateWindow(opts)
 		local function put(inst, props) if not inst then return end if animate then tween(inst, 0.2, props) else for k, v in pairs(props) do inst[k] = v end end end
 		put(title, { Size = UDim2.new(1, 0, 0, h) })
 		put(sepLine, { Position = UDim2.new(0, 0, 0, h) })
-		put(blogo, { Size = UDim2.fromOffset(logoSize, logoSize) })
+		if logoSize <= barH() - 2 then blogo.AnchorPoint = Vector2.new(0, 0.5); put(blogo, { Size = UDim2.fromOffset(logoSize, logoSize), Position = UDim2.new(0, 0, 0.5, 0) })
+		else blogo.AnchorPoint = Vector2.new(0, 0); put(blogo, { Size = UDim2.fromOffset(logoSize, logoSize), Position = UDim2.new(0, 0, 0, 1) }) end
 		put(r1, { Size = UDim2.new(1, -(logoSize + 10), 0, 16), Position = UDim2.new(0, logoSize + 10, 0.5, -17) })
 		put(r2, { Size = UDim2.new(1, -(logoSize + 10), 0, 15), Position = UDim2.new(0, logoSize + 10, 0.5, 1) })
 		put(self.Sidebar, { Size = UDim2.new(0, 190, 1, -(h + 1)), Position = UDim2.new(0, 0, 0, h + 1) })
 		put(self._contentFrame, { Size = UDim2.new(1, -190, 1, -(h + 1)), Position = UDim2.new(0, 190, 0, h + 1) })
 	end
 	self._applyBar = applyBar
+	applyBar()
 
 	-- resize grip (bottom-right corner, iPadOS floating-window style): drag to resize,
 	-- top-left corner stays put. opts.Resizable = false to disable, opts.MinSize/MaxSize = {w, h}

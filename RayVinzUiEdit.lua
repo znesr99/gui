@@ -696,14 +696,18 @@ function RayVinzUI:_section(page, opts)
 			end)
 		end
 	end
-	local card = new("Frame", { Name = "Card", Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = Theme.Card, BackgroundTransparency = 0.22, ClipsDescendants = true, LayoutOrder = cardParent == page and #page:GetChildren() or 3 }, cardParent)
+	local clip = new("Frame", { Name = "CardClip", Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ClipsDescendants = false, LayoutOrder = cardParent == page and #page:GetChildren() or 3 }, cardParent)
+	local card = new("Frame", { Name = "Card", Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = Theme.Card, BackgroundTransparency = 0.22, ClipsDescendants = true, LayoutOrder = 1 }, clip)
 	corner(card, 12); stroke(card, Theme.White, 0.82, 1.2); grad(card, Color3.new(1, 1, 1), Color3.fromRGB(205, 205, 210), 90); vlist(card, 0)
 	section._card = card
 	section._collapsed = false
-	local cardStroke = card:FindFirstChildOfClass("UIStroke")
 	local cardLayout = card:FindFirstChildOfClass("UIListLayout")
-	local strokeT = cardStroke and cardStroke.Transparency or 0.82
 	local animTw, animTok = nil, 0
+	local function glide(inst, t, props)
+		local tw = TweenService:Create(inst, TweenInfo.new(t, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), props)
+		tw:Play()
+		return tw
+	end
 	function section._setCollapsed(c)
 		c = c and true or false
 		if c == section._collapsed then return end
@@ -711,13 +715,13 @@ function RayVinzUI:_section(page, opts)
 		animTok = animTok + 1
 		local tok = animTok
 		if animTw then animTw:Cancel(); animTw = nil end
-		if chev then tween(chev, 0.25, { Rotation = c and -90 or 0 }) end
+		if chev then glide(chev, 0.3, { Rotation = c and -90 or 0 }) end
 		if c then
-			local h = card.AbsoluteSize.Y
-			card.AutomaticSize = Enum.AutomaticSize.None
-			card.Size = UDim2.new(1, 0, 0, h)
-			if cardStroke then tween(cardStroke, 0.25, { Transparency = 1 }) end
-			local tw = tween(card, 0.3, { Size = UDim2.new(1, 0, 0, 0) })
+			local h = clip.AbsoluteSize.Y
+			clip.AutomaticSize = Enum.AutomaticSize.None
+			clip.Size = UDim2.new(1, 0, 0, h)
+			clip.ClipsDescendants = true
+			local tw = glide(clip, 0.32, { Size = UDim2.new(1, 0, 0, 0) })
 			animTw = tw
 			tw.Completed:Connect(function(st)
 				if tok == animTok and st == Enum.PlaybackState.Completed then
@@ -728,26 +732,31 @@ function RayVinzUI:_section(page, opts)
 		else
 			task.spawn(function()
 				if not card.Visible then
-					card.AutomaticSize = Enum.AutomaticSize.None
-					card.Size = UDim2.new(1, 0, 0, 0)
+					clip.AutomaticSize = Enum.AutomaticSize.None
+					clip.Size = UDim2.new(1, 0, 0, 0)
+					clip.ClipsDescendants = true
 					card.Visible = true
+					task.wait()
 					task.wait()
 				end
 				if tok ~= animTok then return end
-				local target = cardLayout and cardLayout.AbsoluteContentSize.Y or 0
-				if cardStroke then tween(cardStroke, 0.25, { Transparency = strokeT }) end
+				local target = card.AbsoluteSize.Y
+				if target <= 0 and cardLayout then target = cardLayout.AbsoluteContentSize.Y end
 				if target <= 0 then
-					card.AutomaticSize = Enum.AutomaticSize.Y
-					card.Size = UDim2.new(1, 0, 0, 0)
+					clip.AutomaticSize = Enum.AutomaticSize.Y
+					clip.Size = UDim2.new(1, 0, 0, 0)
+					clip.ClipsDescendants = false
 					return
 				end
-				card.AutomaticSize = Enum.AutomaticSize.None
-				local tw = tween(card, 0.3, { Size = UDim2.new(1, 0, 0, target) })
+				clip.AutomaticSize = Enum.AutomaticSize.None
+				clip.ClipsDescendants = true
+				local tw = glide(clip, 0.32, { Size = UDim2.new(1, 0, 0, target) })
 				animTw = tw
 				tw.Completed:Connect(function(st)
 					if tok == animTok and st == Enum.PlaybackState.Completed then
-						card.AutomaticSize = Enum.AutomaticSize.Y
-						card.Size = UDim2.new(1, 0, 0, 0)
+						clip.AutomaticSize = Enum.AutomaticSize.Y
+						clip.Size = UDim2.new(1, 0, 0, 0)
+						clip.ClipsDescendants = false
 						animTw = nil
 					end
 				end)

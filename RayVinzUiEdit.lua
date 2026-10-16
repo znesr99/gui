@@ -322,8 +322,10 @@ function RayVinzUI:CreateWindow(opts)
 	pcall(function() workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fitScale) end)
 
 	-- title bar
-	local title = new("Frame", { Name = "TitleBar", Size = UDim2.new(1, 0, 0, 48), BackgroundTransparency = 1 }, win)
-	local lights = new("Frame", { Size = UDim2.fromOffset(52, 14), Position = UDim2.new(0, 16, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), BackgroundTransparency = 1 }, title)
+	local logoSize = clamp(tonumber(opts.LogoSize) or 44, 16, 96)
+	local function barH() return math.max(48, logoSize + 12) end
+	local title = new("Frame", { Name = "TitleBar", Size = UDim2.new(1, 0, 0, barH()), BackgroundTransparency = 1 }, win)
+	local lights = new("Frame", { Size = UDim2.fromOffset(52, 14), Position = UDim2.new(1, -16, 0.5, 0), AnchorPoint = Vector2.new(1, 0.5), BackgroundTransparency = 1 }, title)
 	new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), VerticalAlignment = Enum.VerticalAlignment.Center }, lights)
 	-- maximize toggle (green): swap between normal and a larger size
 	-- maximize centers the window (it may have been dragged/resized off to one side) and
@@ -362,22 +364,22 @@ function RayVinzUI:CreateWindow(opts)
 	lights.MouseEnter:Connect(function() for _, m in ipairs(marks) do tween(m, 0.12, { ImageTransparency = 0 }) end end)
 	lights.MouseLeave:Connect(function() for _, m in ipairs(marks) do tween(m, 0.12, { ImageTransparency = 1 }) end end)
 	-- left-aligned brand: logo + (map name + faint "By author") + version/tags row
-	local brand = new("Frame", { Size = UDim2.new(1, -92, 1, 0), Position = UDim2.new(0, 80, 0, 0), BackgroundTransparency = 1 }, title)
-	local blogo = new("Frame", { Size = UDim2.fromOffset(38, 38), Position = UDim2.new(0, 0, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), BackgroundTransparency = 1 }, brand)
+	local brand = new("Frame", { Size = UDim2.new(1, -100, 1, 0), Position = UDim2.new(0, 16, 0, 0), BackgroundTransparency = 1 }, title)
+	local blogo = new("Frame", { Size = UDim2.fromOffset(logoSize, logoSize), Position = UDim2.new(0, 0, 0.5, 0), AnchorPoint = Vector2.new(0, 0.5), BackgroundTransparency = 1 }, brand)
 	-- a real logo image (rbxassetid/number) keeps its own colors on every theme -- only a
 	-- named vector icon (e.g. "sparkles") gets tinted, since those are flat single-tone glyphs
 	local logoIsCustomImage = type(opts.Logo) == "number"
 		or (type(opts.Logo) == "string" and string.find(opts.Logo, "rbxassetid://") == 1)
-	local blogoIcon = iconImage(blogo, opts.Logo, UDim2.fromOffset(38, 38),
+	local blogoIcon = iconImage(blogo, opts.Logo, UDim2.fromScale(1, 1),
 		logoIsCustomImage and Theme.White or Theme.Text, UDim2.fromScale(0.5, 0.5), Vector2.new(0.5, 0.5))
 	self._logoIcon = blogoIcon
 	-- row 1: map name + "By author" (faint, thin, small)
-	local r1 = new("Frame", { Size = UDim2.new(1, -48, 0, 16), Position = UDim2.new(0, 48, 0, 7), BackgroundTransparency = 1 }, brand)
+	local r1 = new("Frame", { Size = UDim2.new(1, -(logoSize + 10), 0, 16), Position = UDim2.new(0, logoSize + 10, 0.5, -17), BackgroundTransparency = 1 }, brand)
 	new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 7), VerticalAlignment = Enum.VerticalAlignment.Bottom }, r1)
 	local tt = ltext(r1, opts.Title or "RayVinz Hub", 14, Theme.Text, FB); tt.Size = UDim2.fromOffset(0, 16); tt.AutomaticSize = Enum.AutomaticSize.X; tt.LayoutOrder = 1
 	if opts.Author then local au = ltext(r1, "By " .. opts.Author, 10, Theme.Muted, F); au.Size = UDim2.fromOffset(0, 13); au.AutomaticSize = Enum.AutomaticSize.X; au.LayoutOrder = 2 end
 	-- row 2: version tag (+ extra tags)
-	local r2 = new("Frame", { Size = UDim2.new(1, -48, 0, 15), Position = UDim2.new(0, 48, 0, 25), BackgroundTransparency = 1 }, brand)
+	local r2 = new("Frame", { Size = UDim2.new(1, -(logoSize + 10), 0, 15), Position = UDim2.new(0, logoSize + 10, 0.5, 1), BackgroundTransparency = 1 }, brand)
 	new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 5), VerticalAlignment = Enum.VerticalAlignment.Center }, r2)
 	local function titleTag(txt, col, i)
 		local pill = new("Frame", { Size = UDim2.fromOffset(0, 15), AutomaticSize = Enum.AutomaticSize.X, BackgroundColor3 = col or Theme.White, BackgroundTransparency = 0.8, LayoutOrder = i }, r2); corner(pill, 7); pad(pill, 1, 7, 1, 7)
@@ -386,7 +388,20 @@ function RayVinzUI:CreateWindow(opts)
 	titleTag(opts.Version or opts.SubTitle or "v1.0.0", Theme.Accent, 1)
 	if opts.Tags then for i, tg in ipairs(opts.Tags) do titleTag(tg.Text or tostring(tg), tg.Color, i + 1) end end
 	draggable(title, holder)
-	new("Frame", { Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0, 48), BackgroundColor3 = Theme.White, BackgroundTransparency = 0.92, BorderSizePixel = 0 }, win)
+	local sepLine = new("Frame", { Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0, barH()), BackgroundColor3 = Theme.White, BackgroundTransparency = 0.92, BorderSizePixel = 0 }, win)
+	local function applyBar(n, animate)
+		if n then logoSize = clamp(tonumber(n) or logoSize, 16, 96) end
+		local h = barH()
+		local function put(inst, props) if not inst then return end if animate then tween(inst, 0.2, props) else for k, v in pairs(props) do inst[k] = v end end end
+		put(title, { Size = UDim2.new(1, 0, 0, h) })
+		put(sepLine, { Position = UDim2.new(0, 0, 0, h) })
+		put(blogo, { Size = UDim2.fromOffset(logoSize, logoSize) })
+		put(r1, { Size = UDim2.new(1, -(logoSize + 10), 0, 16), Position = UDim2.new(0, logoSize + 10, 0.5, -17) })
+		put(r2, { Size = UDim2.new(1, -(logoSize + 10), 0, 15), Position = UDim2.new(0, logoSize + 10, 0.5, 1) })
+		put(self.Sidebar, { Size = UDim2.new(0, 190, 1, -(h + 1)), Position = UDim2.new(0, 0, 0, h + 1) })
+		put(self._contentFrame, { Size = UDim2.new(1, -190, 1, -(h + 1)), Position = UDim2.new(0, 190, 0, h + 1) })
+	end
+	self._applyBar = applyBar
 
 	-- resize grip (bottom-right corner, iPadOS floating-window style): drag to resize,
 	-- top-left corner stays put. opts.Resizable = false to disable, opts.MinSize/MaxSize = {w, h}
@@ -437,7 +452,7 @@ function RayVinzUI:CreateWindow(opts)
 	end
 
 	-- body: sidebar + content (glassy translucent sidebar)
-	local sidebar = new("ScrollingFrame", { Name = "Sidebar", Size = UDim2.new(0, 190, 1, -49), Position = UDim2.new(0, 0, 0, 49), BackgroundColor3 = Theme.Sidebar, BackgroundTransparency = 0.25,
+	local sidebar = new("ScrollingFrame", { Name = "Sidebar", Size = UDim2.new(0, 190, 1, -(barH() + 1)), Position = UDim2.new(0, 0, 0, barH() + 1), BackgroundColor3 = Theme.Sidebar, BackgroundTransparency = 0.25,
 		BorderSizePixel = 0, ScrollBarThickness = 0, CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y }, win)
 	pad(sidebar, 14, 12, 12, 12); vlist(sidebar, 3)
 	self.Sidebar = sidebar
@@ -510,7 +525,8 @@ function RayVinzUI:CreateWindow(opts)
 			end
 		end)
 	end
-	local content = new("Frame", { Name = "Content", Size = UDim2.new(1, -190, 1, -49), Position = UDim2.new(0, 190, 0, 49), BackgroundTransparency = 1 }, win)
+	local content = new("Frame", { Name = "Content", Size = UDim2.new(1, -190, 1, -(barH() + 1)), Position = UDim2.new(0, 190, 0, barH() + 1), BackgroundTransparency = 1 }, win)
+	self._contentFrame = content
 	self.Content = content
 
 	self:_mountMobile(opts.Logo)
@@ -1580,6 +1596,10 @@ function RayVinzUI:SetBlur(v)
 	return self
 end
 
+function RayVinzUI:SetLogoSize(n)
+	if self._applyBar then self._applyBar(n, true) end
+	return self
+end
 function RayVinzUI:SetTransparent(v, instant)
 	if v == nil then v = not self._transparent end
 	local winT, sideT

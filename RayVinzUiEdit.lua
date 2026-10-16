@@ -10,18 +10,19 @@ local LocalPlayer      = Players.LocalPlayer
 
 -- ================= Theme =================
 local Theme = {
-	Background = Color3.fromRGB(10, 10, 10),
-	Sidebar    = Color3.fromRGB(15, 15, 15),
-	Card       = Color3.fromRGB(32, 32, 44),
-	Elevated   = Color3.fromRGB(38, 38, 52),
-	Select     = Color3.fromRGB(46, 46, 62),
-	Field      = Color3.fromRGB(44, 44, 58),
-	Text       = Color3.fromRGB(245, 245, 247),
-	SubText    = Color3.fromRGB(152, 152, 157),
-	Muted      = Color3.fromRGB(118, 118, 124),
-	Accent     = Color3.fromRGB(255, 121, 198),
-	Accent2    = Color3.fromRGB(189, 147, 249),
-	AccentText = Color3.fromRGB(26, 16, 22),
+	Background = Color3.fromRGB(8, 8, 10),
+	Sidebar    = Color3.fromRGB(14, 14, 16),
+	Card       = Color3.fromRGB(20, 20, 23),
+	Elevated   = Color3.fromRGB(26, 26, 30),
+	Select     = Color3.fromRGB(40, 40, 45),
+	Field      = Color3.fromRGB(30, 30, 34),
+	Text       = Color3.fromRGB(255, 255, 255),
+	SubText    = Color3.fromRGB(205, 205, 210),
+	Muted      = Color3.fromRGB(140, 140, 146),
+	Accent     = Color3.fromRGB(255, 45, 60),
+	Accent2    = Color3.fromRGB(170, 12, 28),
+	AccentText = Color3.fromRGB(255, 255, 255),
+	ToggleOn   = Color3.fromRGB(230, 28, 42),
 	Green      = Color3.fromRGB(48, 209, 88),
 	Info       = Color3.fromRGB(10, 132, 255),
 	Warning    = Color3.fromRGB(255, 214, 10),
@@ -441,7 +442,6 @@ function RayVinzUI:CreateWindow(opts)
 	pad(sidebar, 14, 12, 12, 12); vlist(sidebar, 3)
 	self.Sidebar = sidebar
 	self._winMain = win
-	-- opts.Transparent = true (default, glass look) / false (solid background) / number 0-1 (custom)
 	self._transparent = true
 	RayVinzUI.SetTransparent(self, opts.Transparent == nil and true or opts.Transparent, true)
 	-- sidebar deep search: matches tab titles AND every setting/label inside every
@@ -706,11 +706,11 @@ function RayVinzUI:_section(page, opts)
 		o = o or {}; autoCb(o); local state = o.Default or false
 		local r = row(o.Description and 58 or 48); placeLabel(r, o.Title or "Toggle", 46, o.Description)
 		-- glassy switch: translucent track, soft white edge, floating knob (no clipped glow halo)
-		local sw = new("TextButton", { Text = "", AutoButtonColor = false, Size = UDim2.fromOffset(46, 28), AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -14, 0.5, 0), BackgroundColor3 = state and Theme.Green or Theme.Select, BackgroundTransparency = 0.35 }, r); corner(sw, 14); stroke(sw, Theme.White, 0.7, 1)
+		local sw = new("TextButton", { Text = "", AutoButtonColor = false, Size = UDim2.fromOffset(46, 28), AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -14, 0.5, 0), BackgroundColor3 = state and Theme.ToggleOn or Theme.Select, BackgroundTransparency = 0.35 }, r); corner(sw, 14); stroke(sw, Theme.White, 0.7, 1)
 		local knob = new("Frame", { Size = UDim2.fromOffset(22, 22), AnchorPoint = Vector2.new(0, 0.5), Position = state and UDim2.new(1, -24, 0.5, 0) or UDim2.new(0, 3, 0.5, 0), BackgroundColor3 = Theme.White, ZIndex = 2 }, sw); corner(knob, 11)
 		local function set(v, fire)
 			state = v
-			tween(sw, 0.18, { BackgroundColor3 = v and Theme.Green or Theme.Select })
+			tween(sw, 0.18, { BackgroundColor3 = v and Theme.ToggleOn or Theme.Select })
 			tween(knob, 0.18, { Position = v and UDim2.new(1, -24, 0.5, 0) or UDim2.new(0, 3, 0.5, 0) })
 			if fire ~= false and o.Callback then task.spawn(o.Callback, v) end
 		end
@@ -1430,12 +1430,13 @@ end
 RayVinzUI.ThemePresets = {
 	Dark     = { Background = Color3.fromRGB(28, 28, 30), Sidebar = Color3.fromRGB(36, 36, 39), Card = Color3.fromRGB(44, 44, 46), Elevated = Color3.fromRGB(50, 50, 53), Select = Color3.fromRGB(60, 60, 63), Field = Color3.fromRGB(58, 58, 60), Text = Color3.fromRGB(245, 245, 247), SubText = Color3.fromRGB(152, 152, 157) },
 	Midnight = { Background = Color3.fromRGB(16, 18, 27), Sidebar = Color3.fromRGB(22, 25, 37), Card = Color3.fromRGB(28, 32, 46), Elevated = Color3.fromRGB(34, 39, 56), Select = Color3.fromRGB(44, 50, 70), Field = Color3.fromRGB(40, 45, 64), Text = Color3.fromRGB(235, 238, 250), SubText = Color3.fromRGB(140, 148, 170) },
+	BlackRed = { Background = Color3.fromRGB(8, 8, 10), Sidebar = Color3.fromRGB(14, 14, 16), Card = Color3.fromRGB(20, 20, 23), Elevated = Color3.fromRGB(26, 26, 30), Select = Color3.fromRGB(40, 40, 45), Field = Color3.fromRGB(30, 30, 34), Text = Color3.fromRGB(255, 255, 255), SubText = Color3.fromRGB(205, 205, 210), Muted = Color3.fromRGB(140, 140, 146), Accent = Color3.fromRGB(255, 45, 60), Accent2 = Color3.fromRGB(170, 12, 28), AccentText = Color3.fromRGB(255, 255, 255), ToggleOn = Color3.fromRGB(230, 28, 42) },
 	Light    = { Background = Color3.fromRGB(242, 242, 245), Sidebar = Color3.fromRGB(232, 232, 237), Card = Color3.fromRGB(252, 252, 255), Elevated = Color3.fromRGB(246, 246, 250), Select = Color3.fromRGB(224, 224, 230), Field = Color3.fromRGB(236, 236, 241), Text = Color3.fromRGB(28, 28, 32), SubText = Color3.fromRGB(110, 110, 120) },
 }
 function RayVinzUI:SetTheme(t)
 	if type(t) == "string" then t = RayVinzUI.ThemePresets[t] end
 	if type(t) ~= "table" then return self end
-	for _, k in ipairs({ "Background", "Sidebar", "Card", "Elevated", "Select", "Field", "Text", "SubText", "Muted" }) do
+	for _, k in ipairs({ "Background", "Sidebar", "Card", "Elevated", "Select", "Field", "Text", "SubText", "Muted", "Accent", "Accent2", "AccentText", "ToggleOn" }) do
 		if t[k] then Theme[k] = t[k] end
 	end
 	applyThemeRegistry() -- direct role -> instance replay; safe to call back-to-back as many times as you want
@@ -1579,10 +1580,6 @@ function RayVinzUI:SetBlur(v)
 	return self
 end
 
--- Window:SetTransparent(true)  -> translucent glass background (default)
--- Window:SetTransparent(false) -> solid, non-transparent background
--- Window:SetTransparent(0.5)   -> custom background transparency (0 = solid, 1 = invisible)
--- Window:SetTransparent()      -> toggle between true / false
 function RayVinzUI:SetTransparent(v, instant)
 	if v == nil then v = not self._transparent end
 	local winT, sideT

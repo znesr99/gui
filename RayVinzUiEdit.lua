@@ -22,7 +22,7 @@ local Theme = {
 	Accent     = Color3.fromRGB(0, 128, 255),
 	Accent2    = Color3.fromRGB(0, 72, 160),
 	AccentText = Color3.fromRGB(255, 255, 255),
-	ToggleOn   = Color3.fromRGB(230, 28, 42),
+	ToggleOn   = Color3.fromRGB(0, 128, 255),
 	Green      = Color3.fromRGB(48, 209, 88),
 	Info       = Color3.fromRGB(10, 132, 255),
 	Warning    = Color3.fromRGB(255, 214, 10),
@@ -679,23 +679,81 @@ function RayVinzUI:_section(page, opts)
 		guiObj.MouseLeave:Connect(function() if box then box:Destroy(); box = nil end end)
 	end
 	local chev
+	local cardParent = page
 	if opts.Title then
-		local hrow = new("TextButton", { Text = "", AutoButtonColor = false, Size = UDim2.new(1, 0, 0, 14), BackgroundTransparency = 1, LayoutOrder = #page:GetChildren() }, page)
+		local wrap = new("Frame", { Name = "SectionWrap", Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = #page:GetChildren() }, page)
+		vlist(wrap, 0)
+		cardParent = wrap
+		local hrow = new("TextButton", { Text = "", AutoButtonColor = false, Size = UDim2.new(1, 0, 0, 14), BackgroundTransparency = 1, LayoutOrder = 1 }, wrap)
+		new("Frame", { Name = "Gap", Size = UDim2.new(1, 0, 0, 16), BackgroundTransparency = 1, LayoutOrder = 2 }, wrap)
 		local off = 0
 		if opts.Icon then iconImage(hrow, opts.Icon, UDim2.fromOffset(13, 13), Theme.Muted, UDim2.new(0, 0, 0.5, 0), Vector2.new(0, 0.5)); off = 18 end
 		local hd = ltext(hrow, string.upper(opts.Title), 11, Theme.Muted, FB); hd.Position = UDim2.new(0, off, 0, 0); hd.Size = UDim2.new(1, -off - 16, 1, 0)
 		if opts.Collapsible then
 			chev = iconImage(hrow, "chevron-down", UDim2.fromOffset(13, 13), Theme.Muted, UDim2.new(1, -2, 0.5, 0), Vector2.new(1, 0.5))
 			hrow.MouseButton1Click:Connect(function()
-				section._collapsed = not section._collapsed
-				section._card.Visible = not section._collapsed
-				tween(chev, 0.18, { Rotation = section._collapsed and -90 or 0 })
+				if section._setCollapsed then section._setCollapsed(not section._collapsed) end
 			end)
 		end
 	end
-	local card = new("Frame", { Name = "Card", Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = Theme.Card, BackgroundTransparency = 0.22, ClipsDescendants = true, LayoutOrder = #page:GetChildren() }, page)
+	local card = new("Frame", { Name = "Card", Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = Theme.Card, BackgroundTransparency = 0.22, ClipsDescendants = true, LayoutOrder = cardParent == page and #page:GetChildren() or 3 }, cardParent)
 	corner(card, 12); stroke(card, Theme.White, 0.82, 1.2); grad(card, Color3.new(1, 1, 1), Color3.fromRGB(205, 205, 210), 90); vlist(card, 0)
 	section._card = card
+	section._collapsed = false
+	local cardStroke = card:FindFirstChildOfClass("UIStroke")
+	local cardLayout = card:FindFirstChildOfClass("UIListLayout")
+	local strokeT = cardStroke and cardStroke.Transparency or 0.82
+	local animTw, animTok = nil, 0
+	function section._setCollapsed(c)
+		c = c and true or false
+		if c == section._collapsed then return end
+		section._collapsed = c
+		animTok = animTok + 1
+		local tok = animTok
+		if animTw then animTw:Cancel(); animTw = nil end
+		if chev then tween(chev, 0.25, { Rotation = c and -90 or 0 }) end
+		if c then
+			local h = card.AbsoluteSize.Y
+			card.AutomaticSize = Enum.AutomaticSize.None
+			card.Size = UDim2.new(1, 0, 0, h)
+			if cardStroke then tween(cardStroke, 0.25, { Transparency = 1 }) end
+			local tw = tween(card, 0.3, { Size = UDim2.new(1, 0, 0, 0) })
+			animTw = tw
+			tw.Completed:Connect(function(st)
+				if tok == animTok and st == Enum.PlaybackState.Completed then
+					card.Visible = false
+					animTw = nil
+				end
+			end)
+		else
+			task.spawn(function()
+				if not card.Visible then
+					card.AutomaticSize = Enum.AutomaticSize.None
+					card.Size = UDim2.new(1, 0, 0, 0)
+					card.Visible = true
+					task.wait()
+				end
+				if tok ~= animTok then return end
+				local target = cardLayout and cardLayout.AbsoluteContentSize.Y or 0
+				if cardStroke then tween(cardStroke, 0.25, { Transparency = strokeT }) end
+				if target <= 0 then
+					card.AutomaticSize = Enum.AutomaticSize.Y
+					card.Size = UDim2.new(1, 0, 0, 0)
+					return
+				end
+				card.AutomaticSize = Enum.AutomaticSize.None
+				local tw = tween(card, 0.3, { Size = UDim2.new(1, 0, 0, target) })
+				animTw = tw
+				tw.Completed:Connect(function(st)
+					if tok == animTok and st == Enum.PlaybackState.Completed then
+						card.AutomaticSize = Enum.AutomaticSize.Y
+						card.Size = UDim2.new(1, 0, 0, 0)
+						animTw = nil
+					end
+				end)
+			end)
+		end
+	end
 
 	-- base row (adds a divider only BETWEEN rows, never above the first one)
 	local rowCount = 0
@@ -1449,7 +1507,7 @@ RayVinzUI.ThemePresets = {
 	Dark     = { Background = Color3.fromRGB(28, 28, 30), Sidebar = Color3.fromRGB(36, 36, 39), Card = Color3.fromRGB(44, 44, 46), Elevated = Color3.fromRGB(50, 50, 53), Select = Color3.fromRGB(60, 60, 63), Field = Color3.fromRGB(58, 58, 60), Text = Color3.fromRGB(245, 245, 247), SubText = Color3.fromRGB(152, 152, 157) },
 	Midnight = { Background = Color3.fromRGB(16, 18, 27), Sidebar = Color3.fromRGB(22, 25, 37), Card = Color3.fromRGB(28, 32, 46), Elevated = Color3.fromRGB(34, 39, 56), Select = Color3.fromRGB(44, 50, 70), Field = Color3.fromRGB(40, 45, 64), Text = Color3.fromRGB(235, 238, 250), SubText = Color3.fromRGB(140, 148, 170) },
 	BlackRed = { Background = Color3.fromRGB(8, 8, 10), Sidebar = Color3.fromRGB(14, 14, 16), Card = Color3.fromRGB(20, 20, 23), Elevated = Color3.fromRGB(26, 26, 30), Select = Color3.fromRGB(40, 40, 45), Field = Color3.fromRGB(30, 30, 34), Text = Color3.fromRGB(255, 255, 255), SubText = Color3.fromRGB(205, 205, 210), Muted = Color3.fromRGB(140, 140, 146), Accent = Color3.fromRGB(255, 45, 60), Accent2 = Color3.fromRGB(170, 12, 28), AccentText = Color3.fromRGB(255, 255, 255), ToggleOn = Color3.fromRGB(230, 28, 42) },
-	BlackBlue = { Background = Color3.fromRGB(8, 8, 10), Sidebar = Color3.fromRGB(14, 14, 16), Card = Color3.fromRGB(20, 20, 23), Elevated = Color3.fromRGB(26, 26, 30), Select = Color3.fromRGB(40, 40, 45), Field = Color3.fromRGB(30, 30, 34), Text = Color3.fromRGB(255, 255, 255), SubText = Color3.fromRGB(205, 205, 210), Muted = Color3.fromRGB(140, 140, 146), Accent = Color3.fromRGB(0, 128, 255), Accent2 = Color3.fromRGB(0, 72, 160), AccentText = Color3.fromRGB(255, 255, 255), ToggleOn = Color3.fromRGB(230, 28, 42) },
+	BlackBlue = { Background = Color3.fromRGB(8, 8, 10), Sidebar = Color3.fromRGB(14, 14, 16), Card = Color3.fromRGB(20, 20, 23), Elevated = Color3.fromRGB(26, 26, 30), Select = Color3.fromRGB(40, 40, 45), Field = Color3.fromRGB(30, 30, 34), Text = Color3.fromRGB(255, 255, 255), SubText = Color3.fromRGB(205, 205, 210), Muted = Color3.fromRGB(140, 140, 146), Accent = Color3.fromRGB(0, 128, 255), Accent2 = Color3.fromRGB(0, 72, 160), AccentText = Color3.fromRGB(255, 255, 255), ToggleOn = Color3.fromRGB(0, 128, 255) },
 	Light    = { Background = Color3.fromRGB(242, 242, 245), Sidebar = Color3.fromRGB(232, 232, 237), Card = Color3.fromRGB(252, 252, 255), Elevated = Color3.fromRGB(246, 246, 250), Select = Color3.fromRGB(224, 224, 230), Field = Color3.fromRGB(236, 236, 241), Text = Color3.fromRGB(28, 28, 32), SubText = Color3.fromRGB(110, 110, 120) },
 }
 function RayVinzUI:SetTheme(t)

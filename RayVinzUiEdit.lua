@@ -19,8 +19,8 @@ local Theme = {
 	Text       = Color3.fromRGB(255, 255, 255),
 	SubText    = Color3.fromRGB(205, 205, 210),
 	Muted      = Color3.fromRGB(140, 140, 146),
-	Accent     = Color3.fromRGB(255, 45, 60),
-	Accent2    = Color3.fromRGB(170, 12, 28),
+	Accent     = Color3.fromRGB(0, 128, 255),
+	Accent2    = Color3.fromRGB(0, 72, 160),
 	AccentText = Color3.fromRGB(255, 255, 255),
 	ToggleOn   = Color3.fromRGB(230, 28, 42),
 	Green      = Color3.fromRGB(48, 209, 88),
@@ -1449,6 +1449,7 @@ RayVinzUI.ThemePresets = {
 	Dark     = { Background = Color3.fromRGB(28, 28, 30), Sidebar = Color3.fromRGB(36, 36, 39), Card = Color3.fromRGB(44, 44, 46), Elevated = Color3.fromRGB(50, 50, 53), Select = Color3.fromRGB(60, 60, 63), Field = Color3.fromRGB(58, 58, 60), Text = Color3.fromRGB(245, 245, 247), SubText = Color3.fromRGB(152, 152, 157) },
 	Midnight = { Background = Color3.fromRGB(16, 18, 27), Sidebar = Color3.fromRGB(22, 25, 37), Card = Color3.fromRGB(28, 32, 46), Elevated = Color3.fromRGB(34, 39, 56), Select = Color3.fromRGB(44, 50, 70), Field = Color3.fromRGB(40, 45, 64), Text = Color3.fromRGB(235, 238, 250), SubText = Color3.fromRGB(140, 148, 170) },
 	BlackRed = { Background = Color3.fromRGB(8, 8, 10), Sidebar = Color3.fromRGB(14, 14, 16), Card = Color3.fromRGB(20, 20, 23), Elevated = Color3.fromRGB(26, 26, 30), Select = Color3.fromRGB(40, 40, 45), Field = Color3.fromRGB(30, 30, 34), Text = Color3.fromRGB(255, 255, 255), SubText = Color3.fromRGB(205, 205, 210), Muted = Color3.fromRGB(140, 140, 146), Accent = Color3.fromRGB(255, 45, 60), Accent2 = Color3.fromRGB(170, 12, 28), AccentText = Color3.fromRGB(255, 255, 255), ToggleOn = Color3.fromRGB(230, 28, 42) },
+	BlackBlue = { Background = Color3.fromRGB(8, 8, 10), Sidebar = Color3.fromRGB(14, 14, 16), Card = Color3.fromRGB(20, 20, 23), Elevated = Color3.fromRGB(26, 26, 30), Select = Color3.fromRGB(40, 40, 45), Field = Color3.fromRGB(30, 30, 34), Text = Color3.fromRGB(255, 255, 255), SubText = Color3.fromRGB(205, 205, 210), Muted = Color3.fromRGB(140, 140, 146), Accent = Color3.fromRGB(0, 128, 255), Accent2 = Color3.fromRGB(0, 72, 160), AccentText = Color3.fromRGB(255, 255, 255), ToggleOn = Color3.fromRGB(230, 28, 42) },
 	Light    = { Background = Color3.fromRGB(242, 242, 245), Sidebar = Color3.fromRGB(232, 232, 237), Card = Color3.fromRGB(252, 252, 255), Elevated = Color3.fromRGB(246, 246, 250), Select = Color3.fromRGB(224, 224, 230), Field = Color3.fromRGB(236, 236, 241), Text = Color3.fromRGB(28, 28, 32), SubText = Color3.fromRGB(110, 110, 120) },
 }
 function RayVinzUI:SetTheme(t)

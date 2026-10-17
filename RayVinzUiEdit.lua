@@ -777,7 +777,7 @@ function RayVinzUI:_section(page, opts)
 	local function placeLabel(r, text, reserve, desc)
 		if desc and desc ~= "" then
 			local l = ltext(r, text, 13, Theme.Text, FM); l.Position = UDim2.new(0, 14, 0, 9); l.Size = UDim2.new(1, -(reserve + 28), 0, 16)
-			local d = ltext(r, desc, 11, Theme.SubText, F); d.Position = UDim2.new(0, 14, 0, 26); d.Size = UDim2.new(1, -(reserve + 28), 0, 14)
+			local d = ltext(r, desc, 12, Theme.Text, F); d.TextTransparency = 0.12; d.Position = UDim2.new(0, 14, 0, 26); d.Size = UDim2.new(1, -(reserve + 28), 0, 14)
 			return l
 		end
 		local l = ltext(r, text, 13, Theme.Text, FM)
@@ -844,7 +844,7 @@ function RayVinzUI:_section(page, opts)
 		o = o or {}; autoCb(o); local min = o.Min or 0; local max = o.Max or 100; local val = o.Default or min
 		local r = row(o.Description and 66 or 54)
 		local lbl = ltext(r, o.Title or "Slider", 13, Theme.Text, FM); lbl.Position = UDim2.new(0, 14, 0, 11); lbl.Size = UDim2.new(1, -90, 0, 16)
-		if o.Description then local d = ltext(r, o.Description, 11, Theme.SubText, F); d.Position = UDim2.new(0, 14, 0, 28); d.Size = UDim2.new(1, -28, 0, 14) end
+		if o.Description then local d = ltext(r, o.Description, 12, Theme.Text, F); d.TextTransparency = 0.12; d.Position = UDim2.new(0, 14, 0, 28); d.Size = UDim2.new(1, -28, 0, 14) end
 		local valLbl = ltext(r, "", 13, Theme.Accent, FB, Enum.TextXAlignment.Right); valLbl.AnchorPoint = Vector2.new(1, 0); valLbl.Position = UDim2.new(1, -14, 0, 11); valLbl.Size = UDim2.new(0, 60, 0, 16)
 		local track = new("TextButton", { Text = "", AutoButtonColor = false, Size = UDim2.new(1, -28, 0, 6), AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 14, 1, -14), BackgroundColor3 = Theme.White, BackgroundTransparency = 0.85 }, r); corner(track, 3)
 		local fb = new("Frame", { Size = UDim2.new(0, 0, 1, 0), BackgroundColor3 = Theme.Accent, BorderSizePixel = 0 }, track); corner(fb, 3)

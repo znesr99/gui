@@ -664,7 +664,15 @@ function RayVinzUI:_section(page, opts)
 	local function autoCb(o)
 		if not win._queueSave then return end
 		local cb = o.Callback
+		o._rawCb = cb
 		o.Callback = function(...) if cb then cb(...) end win._queueSave() end
+	end
+	local function initFire(o, ...)
+		if o.FireDefault == false then return end
+		local cb = o._rawCb or o.Callback
+		if not cb then return end
+		local args = table.pack(...)
+		task.defer(function() cb(table.unpack(args, 1, args.n)) end)
 	end
 	-- hover tooltip (parented to the ScreenGui so it escapes the card's clip)
 	local function tip(guiObj, text)
@@ -803,6 +811,7 @@ function RayVinzUI:_section(page, opts)
 		if o.Keybind then trackConn(UserInputService.InputBegan:Connect(function(inp, gpe) if not gpe and inp.KeyCode == o.Keybind then set(not state) end end)) end
 		tip(r, o.Tooltip)
 		local ctl = { Set = function(v) set(v) end, Get = function() return state end }
+		if o.Default ~= nil then initFire(o, state) end
 		registerFlag(o, ctl); return ctl
 	end
 
@@ -863,6 +872,7 @@ function RayVinzUI:_section(page, opts)
 		set(val, false)
 		tip(r, o.Tooltip)
 		local ctl = { Set = function(v) set(v) end, Get = function() return val end }
+		if o.Default ~= nil then initFire(o, val) end
 		registerFlag(o, ctl); return ctl
 	end
 
@@ -988,6 +998,7 @@ function RayVinzUI:_section(page, opts)
 		catcher.MouseButton1Click:Connect(closeList)
 		box:GetPropertyChangedSignal("AbsolutePosition"):Connect(function() if list.Visible then reposition() end end)
 		display(); rebuild(); tip(r, o.Tooltip)
+		if o.Default ~= nil then initFire(o, selected) end
 		doRefresh = function(newOpts)
 			if type(newOpts) == "table" then options = newOpts
 			elseif o.Refresh then local ok, nw = pcall(o.Refresh); if ok and type(nw) == "table" then options = nw end end
@@ -1011,6 +1022,7 @@ function RayVinzUI:_section(page, opts)
 		local tb = new("TextBox", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0), Text = o.Default or "", PlaceholderText = o.Placeholder or "...", PlaceholderColor3 = Theme.Muted, TextColor3 = Theme.Text, Font = FM, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false }, holder)
 		tb.FocusLost:Connect(function() if o.Callback then task.spawn(o.Callback, tb.Text) end end)
 		local ctl = { Set = function(v) tb.Text = v end, Get = function() return tb.Text end }
+		if o.Default ~= nil and o.Default ~= "" then initFire(o, tb.Text) end
 		registerFlag(o, ctl); return ctl
 	end
 
@@ -1023,6 +1035,7 @@ function RayVinzUI:_section(page, opts)
 		local tb = new("TextBox", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0), Text = o.Default or "", PlaceholderText = o.Placeholder or "Enter Text...", PlaceholderColor3 = Theme.Muted, TextColor3 = Theme.Text, Font = FM, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, MultiLine = true, TextWrapped = true, ClearTextOnFocus = false }, holder)
 		tb.FocusLost:Connect(function() if o.Callback then task.spawn(o.Callback, tb.Text) end end)
 		local ctl = { Set = function(v) tb.Text = v end, Get = function() return tb.Text end }
+		if o.Default ~= nil and o.Default ~= "" then initFire(o, tb.Text) end
 		registerFlag(o, ctl); return ctl
 	end
 
@@ -1068,6 +1081,7 @@ function RayVinzUI:_section(page, opts)
 		end))
 		sw.MouseButton1Click:Connect(function() pop.Position = UDim2.fromOffset(sw.AbsolutePosition.X - 160, sw.AbsolutePosition.Y + 30) pop.Visible = not pop.Visible end)
 		refresh(false)
+		if o.Default ~= nil then initFire(o, color) end
 		local ctl = { Set = function(c) h, s, v = c:ToHSV() refresh() end, Get = function() return color end }
 		registerFlag(o, ctl, "color"); return ctl
 	end
@@ -1383,6 +1397,7 @@ function RayVinzUI:_section(page, opts)
 		minus.MouseButton1Click:Connect(function() set(val - step) end)
 		plus.MouseButton1Click:Connect(function() set(val + step) end)
 		local ctl = { Set = function(v) set(v) end, Get = function() return val end }
+		if o.Default ~= nil then initFire(o, val) end
 		registerFlag(o, ctl); return ctl
 	end
 

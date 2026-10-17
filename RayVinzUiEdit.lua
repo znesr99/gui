@@ -250,27 +250,22 @@ function RayVinzUI:CreateWindow(opts)
 	self._loading = self._autoSave -- block auto-save until the first auto-load finishes
 	do
 		local auto = self:GetAutoLoadEnabled() and self:GetAutoLoadConfig() or nil
-		if auto and type(readfile) == "function" and type(isfile) == "function" then
-			local path = HubFolder .. "/" .. auto .. ".json"
-			if isfile(path) then
-				local ok, data = pcall(function() return game:GetService("HttpService"):JSONDecode(readfile(path)) end)
-				if ok and type(data) == "table" then
-					self._pendingCfg = data
-					self._loading = true
-					task.spawn(function()
-						local waited = 0
-						local last = -1
-						repeat
-							last = self._cfgCount or 0
-							task.wait(1.2)
-							waited = waited + 1
-						until ((self._cfgCount or 0) == last and last > 0) or waited >= 40
-						self._pendingCfg = nil
-						task.wait(0.8)
-						self._loading = false
-					end)
-				end
-			end
+		local data = auto and self:_ReadConfigData(auto) or nil
+		if data then
+			self._pendingCfg = data
+			self._loading = true
+			task.spawn(function()
+				local waited = 0
+				local last = -1
+				repeat
+					last = self._cfgCount or 0
+					task.wait(1.2)
+					waited = waited + 1
+				until ((self._cfgCount or 0) == last and last > 0) or waited >= 40
+				self._pendingCfg = nil
+				task.wait(0.8)
+				self._loading = false
+			end)
 		end
 	end
 	do
@@ -1792,6 +1787,16 @@ function RayVinzUI:SetAutoLoadConfig(name)
 		elseif delfile and isfile and isfile(HubFolder .. "/_autoload.txt") then delfile(HubFolder .. "/_autoload.txt") end
 	end)
 	return self
+end
+function RayVinzUI:_ReadConfigData(name)
+	if type(readfile) ~= "function" or type(isfile) ~= "function" then return nil end
+	local ok, data = pcall(function()
+		local path = HubFolder .. "/" .. name .. ".json"
+		if not isfile(path) then return nil end
+		return game:GetService("HttpService"):JSONDecode(readfile(path))
+	end)
+	if ok and type(data) == "table" then return data end
+	return nil
 end
 function RayVinzUI:SetAutoLoadEnabled(v)
 	v = v and true or false

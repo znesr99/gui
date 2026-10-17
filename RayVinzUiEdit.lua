@@ -253,7 +253,7 @@ function RayVinzUI:CreateWindow(opts)
 		self._queueSave = function()
 			if pending or not self._autoSave or self._loading then return end
 			pending = true
-			task.delay(0.6, function() pending = false; if not self._loading then pcall(function() self:SaveConfig() end) end end)
+			task.delay(0.6, function() pending = false; if self._loading then return end if self:GetAutoLoadConfig() and not self:GetAutoLoadEnabled() then return end pcall(function() self:SaveConfig() end) end)
 		end
 	end
 	cleanupOld() -- destroy any previous RayVinzUI so re-running never stacks windows/buttons
@@ -546,7 +546,7 @@ function RayVinzUI:CreateWindow(opts)
 	-- auto-load saved config a frame after build (so every element exists first)
 	-- load on start only when the user picked an auto-load config; auto-save still runs either way
 	if opts.ConfigAutoSave then task.defer(function()
-		local auto = self:GetAutoLoadConfig()
+		local auto = self:GetAutoLoadEnabled() and self:GetAutoLoadConfig() or nil
 		if auto then pcall(function() self:LoadConfig(auto) end) else self._loading = false end
 	end) end
 
@@ -652,6 +652,7 @@ function RayVinzUI:_section(page, opts)
 	-- register an element for Config. Uses o.Flag, or auto-generates "Section/Title" so
 	-- EVERY element is saved by default (set opts.AutoFlag = false to require explicit Flags).
 	local function registerFlag(o, ctl, kind)
+		if o.NoFlag then return end
 		autoN = autoN + 1
 		local flag = o.Flag
 		if not flag and win._autoFlag then
@@ -1426,7 +1427,9 @@ function RayVinzUI:_section(page, opts)
 				local n = dd.Get(); if n then UI:DeleteConfig(n); dd.Refresh(UI:ListConfigs()); UI:Notify({ Title = "Deleted", Content = n, Type = "Warning", Icon = "trash-2" }) end
 			end },
 		} })
-		self:Dropdown({ Title = "Auto-load on open", Options = UI:ListConfigs(), Default = UI:GetAutoLoadConfig(), Refresh = function() return UI:ListConfigs() end,
+		self:Toggle({ Title = "Auto-load on open", Description = "Load the selected config automatically when the script starts", Default = UI:GetAutoLoadEnabled(), FireDefault = false, NoFlag = true,
+			Callback = function(v) UI:SetAutoLoadEnabled(v); UI:Notify({ Title = v and "Auto-load ON" or "Auto-load OFF", Type = v and "Success" or "Warning", Icon = v and "check" or "x" }) end })
+		self:Dropdown({ Title = "Auto-load config", Options = UI:ListConfigs(), Default = UI:GetAutoLoadConfig(), Refresh = function() return UI:ListConfigs() end,
 			Callback = function(n) UI:SetAutoLoadConfig(n); UI:Notify({ Title = "Auto-load set", Content = n, Type = "Success", Icon = "check" }) end })
 		return { Refresh = function() dd.Refresh(UI:ListConfigs()) end }
 	end
@@ -1740,6 +1743,22 @@ function RayVinzUI:SetAutoLoadConfig(name)
 		elseif delfile and isfile and isfile(HubFolder .. "/_autoload.txt") then delfile(HubFolder .. "/_autoload.txt") end
 	end)
 	return self
+end
+function RayVinzUI:SetAutoLoadEnabled(v)
+	v = v and true or false
+	self._autoLoadEnabled = v
+	pcall(function()
+		ensureFolder()
+		if type(writefile) == "function" then writefile(HubFolder .. "/_autoload_enabled.txt", v and "true" or "false") end
+	end)
+	return self
+end
+function RayVinzUI:GetAutoLoadEnabled()
+	local v = true
+	pcall(function()
+		if isfile and readfile and isfile(HubFolder .. "/_autoload_enabled.txt") then v = readfile(HubFolder .. "/_autoload_enabled.txt") ~= "false" end
+	end)
+	return v
 end
 function RayVinzUI:GetAutoLoadConfig()
 	local name

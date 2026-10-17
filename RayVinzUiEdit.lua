@@ -249,6 +249,31 @@ function RayVinzUI:CreateWindow(opts)
 	self._autoFlag = opts.AutoFlag ~= false -- auto-generate a Flag for every element (so config saves everything)
 	self._loading = self._autoSave -- block auto-save until the first auto-load finishes
 	do
+		local auto = self:GetAutoLoadEnabled() and self:GetAutoLoadConfig() or nil
+		if auto and type(readfile) == "function" and type(isfile) == "function" then
+			local path = HubFolder .. "/" .. auto .. ".json"
+			if isfile(path) then
+				local ok, data = pcall(function() return game:GetService("HttpService"):JSONDecode(readfile(path)) end)
+				if ok and type(data) == "table" then
+					self._pendingCfg = data
+					self._loading = true
+					task.spawn(function()
+						local waited = 0
+						local last = -1
+						repeat
+							last = self._cfgCount or 0
+							task.wait(1.2)
+							waited = waited + 1
+						until ((self._cfgCount or 0) == last and last > 0) or waited >= 40
+						self._pendingCfg = nil
+						task.wait(0.8)
+						self._loading = false
+					end)
+				end
+			end
+		end
+	end
+	do
 		local pending = false
 		self._queueSave = function()
 			if pending or not self._autoSave or self._loading then return end
@@ -546,8 +571,7 @@ function RayVinzUI:CreateWindow(opts)
 	-- auto-load saved config a frame after build (so every element exists first)
 	-- load on start only when the user picked an auto-load config; auto-save still runs either way
 	if opts.ConfigAutoSave then task.defer(function()
-		local auto = self:GetAutoLoadEnabled() and self:GetAutoLoadConfig() or nil
-		if auto then pcall(function() self:LoadConfig(auto) end) else self._loading = false end
+		if not self._pendingCfg then self._loading = false end
 	end) end
 
 	-- auto re-inject: if the GUI is externally un-parented (not destroyed), put it back
@@ -659,7 +683,18 @@ function RayVinzUI:_section(page, opts)
 			flag = (opts.Title or "Section") .. "/" .. (o.Title or ("item" .. autoN))
 			if wflags[flag] then flag = flag .. "#" .. autoN end
 		end
-		if flag then wflags[flag] = { ctl = ctl, kind = kind } end
+		if flag then
+			wflags[flag] = { ctl = ctl, kind = kind }
+			local pc = win._pendingCfg
+			if pc and pc[flag] ~= nil then
+				o._cfgApplied = true
+				local v = pc[flag]
+				if kind == "keybind" then pcall(function() ctl.Set(Enum.KeyCode[v]) end)
+				elseif kind == "color" and type(v) == "table" then pcall(function() ctl.Set(Color3.new(v.R, v.G, v.B)) end)
+				else pcall(function() ctl.Set(v) end) end
+			end
+			win._cfgCount = (win._cfgCount or 0) + 1
+		end
 	end
 	-- wrap an element's callback so a change also triggers auto-save (if enabled)
 	local function autoCb(o)
@@ -668,12 +703,14 @@ function RayVinzUI:_section(page, opts)
 		o._rawCb = cb
 		o.Callback = function(...) if cb then cb(...) end win._queueSave() end
 	end
-	local function initFire(o, ...)
+	local function initFire(o, get)
 		if o.FireDefault == false then return end
 		local cb = o._rawCb or o.Callback
 		if not cb then return end
-		local args = table.pack(...)
-		task.defer(function() cb(table.unpack(args, 1, args.n)) end)
+		task.defer(function()
+			if o._cfgApplied then return end
+			cb(get())
+		end)
 	end
 	-- hover tooltip (parented to the ScreenGui so it escapes the card's clip)
 	local function tip(guiObj, text)
@@ -812,7 +849,7 @@ function RayVinzUI:_section(page, opts)
 		if o.Keybind then trackConn(UserInputService.InputBegan:Connect(function(inp, gpe) if not gpe and inp.KeyCode == o.Keybind then set(not state) end end)) end
 		tip(r, o.Tooltip)
 		local ctl = { Set = function(v) set(v) end, Get = function() return state end }
-		if o.Default ~= nil then initFire(o, state) end
+		if o.Default ~= nil then initFire(o, function() return state end) end
 		registerFlag(o, ctl); return ctl
 	end
 
@@ -873,7 +910,7 @@ function RayVinzUI:_section(page, opts)
 		set(val, false)
 		tip(r, o.Tooltip)
 		local ctl = { Set = function(v) set(v) end, Get = function() return val end }
-		if o.Default ~= nil then initFire(o, val) end
+		if o.Default ~= nil then initFire(o, function() return val end) end
 		registerFlag(o, ctl); return ctl
 	end
 
@@ -999,7 +1036,7 @@ function RayVinzUI:_section(page, opts)
 		catcher.MouseButton1Click:Connect(closeList)
 		box:GetPropertyChangedSignal("AbsolutePosition"):Connect(function() if list.Visible then reposition() end end)
 		display(); rebuild(); tip(r, o.Tooltip)
-		if o.Default ~= nil then initFire(o, selected) end
+		if o.Default ~= nil then initFire(o, function() return selected end) end
 		doRefresh = function(newOpts)
 			if type(newOpts) == "table" then options = newOpts
 			elseif o.Refresh then local ok, nw = pcall(o.Refresh); if ok and type(nw) == "table" then options = nw end end
@@ -1023,7 +1060,7 @@ function RayVinzUI:_section(page, opts)
 		local tb = new("TextBox", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0), Text = o.Default or "", PlaceholderText = o.Placeholder or "...", PlaceholderColor3 = Theme.Muted, TextColor3 = Theme.Text, Font = FM, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false }, holder)
 		tb.FocusLost:Connect(function() if o.Callback then task.spawn(o.Callback, tb.Text) end end)
 		local ctl = { Set = function(v) tb.Text = v end, Get = function() return tb.Text end }
-		if o.Default ~= nil and o.Default ~= "" then initFire(o, tb.Text) end
+		if o.Default ~= nil and o.Default ~= "" then initFire(o, function() return tb.Text end) end
 		registerFlag(o, ctl); return ctl
 	end
 
@@ -1036,7 +1073,7 @@ function RayVinzUI:_section(page, opts)
 		local tb = new("TextBox", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0), Text = o.Default or "", PlaceholderText = o.Placeholder or "Enter Text...", PlaceholderColor3 = Theme.Muted, TextColor3 = Theme.Text, Font = FM, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, MultiLine = true, TextWrapped = true, ClearTextOnFocus = false }, holder)
 		tb.FocusLost:Connect(function() if o.Callback then task.spawn(o.Callback, tb.Text) end end)
 		local ctl = { Set = function(v) tb.Text = v end, Get = function() return tb.Text end }
-		if o.Default ~= nil and o.Default ~= "" then initFire(o, tb.Text) end
+		if o.Default ~= nil and o.Default ~= "" then initFire(o, function() return tb.Text end) end
 		registerFlag(o, ctl); return ctl
 	end
 
@@ -1082,7 +1119,7 @@ function RayVinzUI:_section(page, opts)
 		end))
 		sw.MouseButton1Click:Connect(function() pop.Position = UDim2.fromOffset(sw.AbsolutePosition.X - 160, sw.AbsolutePosition.Y + 30) pop.Visible = not pop.Visible end)
 		refresh(false)
-		if o.Default ~= nil then initFire(o, color) end
+		if o.Default ~= nil then initFire(o, function() return color end) end
 		local ctl = { Set = function(c) h, s, v = c:ToHSV() refresh() end, Get = function() return color end }
 		registerFlag(o, ctl, "color"); return ctl
 	end
@@ -1398,40 +1435,52 @@ function RayVinzUI:_section(page, opts)
 		minus.MouseButton1Click:Connect(function() set(val - step) end)
 		plus.MouseButton1Click:Connect(function() set(val + step) end)
 		local ctl = { Set = function(v) set(v) end, Get = function() return val end }
-		if o.Default ~= nil then initFire(o, val) end
+		if o.Default ~= nil then initFire(o, function() return val end) end
 		registerFlag(o, ctl); return ctl
 	end
 
 	-- ConfigManager: create (named) / select / load / delete / auto-load  (one call builds the whole UI)
 	function section:ConfigManager()
 		local UI = self._window
-		local nameBox = self:Textbox({ Title = "New config name", Placeholder = "my_config" })
-		local dd = self:Dropdown({ Title = "Config", Options = UI:ListConfigs(), Refresh = function() return UI:ListConfigs() end })
+		local adl
+		local function syncAuto(n)
+			if n and UI:GetAutoLoadEnabled() and not UI:GetAutoLoadConfig() then UI:SetAutoLoadConfig(n) end
+		end
+		local nameBox = self:Textbox({ Title = "New config name", Placeholder = "my_config", NoFlag = true })
+		local dd = self:Dropdown({ Title = "Config", Options = UI:ListConfigs(), Refresh = function() return UI:ListConfigs() end, NoFlag = true })
+		local function refreshAll()
+			dd.Refresh(UI:ListConfigs())
+			if adl then adl.Refresh(UI:ListConfigs()) end
+		end
 		self:ButtonGroup({ Buttons = {
 			{ Title = "Create", Variant = "Primary", Callback = function()
 				local n = tostring(nameBox.Get() or ""):gsub("%s+", "_")
-				if n ~= "" then UI:SaveConfig(n); dd.Refresh(UI:ListConfigs()); UI:Notify({ Title = "Config created", Content = n, Type = "Success", Icon = "check" })
+				if n ~= "" then UI:SaveConfig(n); syncAuto(n); refreshAll(); UI:Notify({ Title = "Config created", Content = n, Type = "Success", Icon = "check" })
 				else UI:Notify({ Title = "Enter a name first", Type = "Warning", Icon = "alert-triangle" }) end
 			end },
-			{ Title = "Save", Callback = function() -- overwrite the selected config
+			{ Title = "Save", Callback = function()
 				local n = dd.Get()
-				if n then UI:SaveConfig(n); UI:Notify({ Title = "Saved (overwrite)", Content = n, Type = "Success", Icon = "save" })
+				if n then UI:SaveConfig(n); syncAuto(n); UI:Notify({ Title = "Saved (overwrite)", Content = n, Type = "Success", Icon = "save" })
 				else UI:Notify({ Title = "Select a config first", Type = "Warning", Icon = "alert-triangle" }) end
 			end },
 		} })
 		self:ButtonGroup({ Buttons = {
 			{ Title = "Load", Callback = function()
-				local n = dd.Get(); if n then UI:LoadConfig(n); UI:Notify({ Title = "Loaded", Content = n, Type = "Info", Icon = "download" }) end
+				local n = dd.Get(); if n then UI:LoadConfig(n); syncAuto(n); UI:Notify({ Title = "Loaded", Content = n, Type = "Info", Icon = "download" }) end
 			end },
 			{ Title = "Delete", Callback = function()
-				local n = dd.Get(); if n then UI:DeleteConfig(n); dd.Refresh(UI:ListConfigs()); UI:Notify({ Title = "Deleted", Content = n, Type = "Warning", Icon = "trash-2" }) end
+				local n = dd.Get(); if n then UI:DeleteConfig(n); refreshAll(); UI:Notify({ Title = "Deleted", Content = n, Type = "Warning", Icon = "trash-2" }) end
 			end },
 		} })
-		self:Toggle({ Title = "Auto-load on open", Description = "Load the selected config automatically when the script starts", Default = UI:GetAutoLoadEnabled(), FireDefault = false, NoFlag = true,
-			Callback = function(v) UI:SetAutoLoadEnabled(v); UI:Notify({ Title = v and "Auto-load ON" or "Auto-load OFF", Type = v and "Success" or "Warning", Icon = v and "check" or "x" }) end })
-		self:Dropdown({ Title = "Auto-load config", Options = UI:ListConfigs(), Default = UI:GetAutoLoadConfig(), Refresh = function() return UI:ListConfigs() end,
+		adl = self:Dropdown({ Title = "Auto-load config", Options = UI:ListConfigs(), Default = UI:GetAutoLoadConfig(), FireDefault = false, NoFlag = true, Refresh = function() return UI:ListConfigs() end,
 			Callback = function(n) UI:SetAutoLoadConfig(n); UI:Notify({ Title = "Auto-load set", Content = n, Type = "Success", Icon = "check" }) end })
-		return { Refresh = function() dd.Refresh(UI:ListConfigs()) end }
+		self:Toggle({ Title = "Auto-load on open", Description = "Load the selected config automatically when the script starts", Default = UI:GetAutoLoadEnabled(), FireDefault = false, NoFlag = true,
+			Callback = function(v)
+				UI:SetAutoLoadEnabled(v)
+				if v then syncAuto(dd.Get()) end
+				UI:Notify({ Title = v and "Auto-load ON" or "Auto-load OFF", Type = v and "Success" or "Warning", Icon = v and "check" or "x" })
+			end })
+		return { Refresh = refreshAll }
 	end
 
 	-- HWID: show + copy + reload (no rejoin). o.Callback(id) fires on reload (e.g. re-verify a key)

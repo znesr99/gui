@@ -1120,9 +1120,42 @@ function RayVinzUI:_section(page, opts)
 	function section:Paragraph(o)
 		o = o or {}
 		local r = row(0); pad(r, 13, 14, 15, 14); vlist(r, 6)
-		if o.Title then local t = ltext(r, o.Title, 14, Theme.Text, FB); t.Size = UDim2.new(1, 0, 0, 18) end
+		local t
+		if o.Title then t = ltext(r, o.Title, 14, Theme.Text, FB); t.Size = UDim2.new(1, 0, 0, 18) end
 		local b = ltext(r, o.Content or "", 12, Theme.SubText, F); b.Size = UDim2.new(1, 0, 0, 0); b.AutomaticSize = Enum.AutomaticSize.Y; b.TextWrapped = true; b.TextYAlignment = Enum.TextYAlignment.Top
-		return r
+		local ctl = {}
+		function ctl.SetContent(a, b2)
+			local v = b2 == nil and a or b2
+			if type(v) == "table" then v = nil end
+			b.Text = tostring(v == nil and "" or v)
+			return ctl
+		end
+		function ctl.SetTitle(a, b2)
+			local v = b2 == nil and a or b2
+			if type(v) == "table" then v = nil end
+			if v == nil or v == "" then
+				if t then t:Destroy(); t = nil end
+				return ctl
+			end
+			if not t then
+				t = ltext(r, tostring(v), 14, Theme.Text, FB); t.Size = UDim2.new(1, 0, 0, 18); t.LayoutOrder = -1
+			else
+				t.Text = tostring(v)
+			end
+			return ctl
+		end
+		ctl.Set = ctl.SetContent
+		ctl.SetText = ctl.SetContent
+		function ctl.Get() return b.Text end
+		ctl.Frame = r
+		return setmetatable(ctl, {
+			__index = function(_, k)
+				local v = r[k]
+				if typeof(v) == "function" then return function(_, ...) return v(r, ...) end end
+				return v
+			end,
+			__newindex = function(_, k, v) r[k] = v end,
+		})
 	end
 
 	-- Tags

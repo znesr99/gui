@@ -128,6 +128,8 @@ local function draggable(handle, target)
 	end)
 end
 
+local RunId = tostring(os.clock()) .. "_" .. tostring(math.random(1, 1000000000))
+local OverlayGui = nil
 local function guiParent()
 	local ok, h = pcall(function() return gethui() end)
 	if ok and h then return h end
@@ -144,7 +146,7 @@ local function cleanupOld()
 	for _, p in ipairs(spots) do
 		if p then
 			for _, g in ipairs(p:GetChildren()) do
-				if g.Name == "RayVinzUI" then pcall(function() g:Destroy() end) end
+				if g.Name == "RayVinzUI" or (g.Name == "RayVinzUI_Overlay" and g:GetAttribute("RunId") ~= RunId) then pcall(function() g:Destroy() end) end
 			end
 		end
 	end
@@ -182,6 +184,15 @@ end
 local IconPack = nil
 local ActiveGui = nil
 local ActiveFlags = nil
+local function getGui(self)
+	local g = self and self.Gui
+	if g and g.Parent then return g end
+	if ActiveGui and ActiveGui.Parent then return ActiveGui end
+	if OverlayGui and OverlayGui.Parent then return OverlayGui end
+	OverlayGui = new("ScreenGui", { Name = "RayVinzUI_Overlay", ResetOnSpawn = false, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, IgnoreGuiInset = true, DisplayOrder = 100 }, guiParent())
+	OverlayGui:SetAttribute("RunId", RunId)
+	return OverlayGui
+end
 local function resolveIcon(icon)
 	if not icon or icon == "" then return nil end
 	if type(icon) == "number" then return { Image = "rbxassetid://" .. icon } end
@@ -1502,7 +1513,7 @@ function RayVinzUI:Notify(o)
 	local colors = { Info = Theme.Info, Success = Theme.Green, Warning = Theme.Warning, Error = Theme.Error }
 	local color = colors[o.Type or "Info"] or Theme.Info
 	local defIcons = { Info = "info", Success = "check", Warning = "alert-triangle", Error = "x" }
-	local gui = self.Gui or ActiveGui
+	local gui = getGui(self)
 	local holder = gui:FindFirstChild("NotifHolder")
 	if not holder then
 		-- bottom-right stack (where notifications usually live), newest at the bottom
@@ -1549,7 +1560,7 @@ end
 
 function RayVinzUI:Dialog(o)
 	o = o or {}
-	local gui = self.Gui or ActiveGui
+	local gui = getGui(self)
 	local overlay = new("Frame", { Name = "Dialog", Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.5, ZIndex = 80 }, gui)
 	local box = new("Frame", { Size = UDim2.fromOffset(360, 0), AutomaticSize = Enum.AutomaticSize.Y, Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = Theme.Elevated, BackgroundTransparency = 0.06, ClipsDescendants = true, ZIndex = 81 }, overlay); corner(box, 18); stroke(box, Theme.White, 0.78, 1); pad(box, 18, 20, 18, 20); vlist(box, 14)
 	local t = ltext(box, o.Title or "Dialog", 15, Theme.Text, FB); t.Size = UDim2.new(1, 0, 0, 20); t.LayoutOrder = 1
@@ -1567,7 +1578,7 @@ end
 -- input dialog (modal with a textbox). o.Callback(text) on confirm
 function RayVinzUI:Prompt(o)
 	o = o or {}
-	local gui = self.Gui or ActiveGui
+	local gui = getGui(self)
 	local overlay = new("Frame", { Name = "Prompt", Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.5, ZIndex = 82 }, gui)
 	local box = new("Frame", { Size = UDim2.fromOffset(360, 0), AutomaticSize = Enum.AutomaticSize.Y, Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = Theme.Elevated, BackgroundTransparency = 0.06, ClipsDescendants = true, ZIndex = 83 }, overlay); corner(box, 18); stroke(box, Theme.White, 0.78, 1); pad(box, 18, 20, 18, 20); vlist(box, 12)
 	local t = ltext(box, o.Title or "Input", 15, Theme.Text, FB); t.Size = UDim2.new(1, 0, 0, 20); t.LayoutOrder = 1
@@ -1589,7 +1600,7 @@ end
 -- floating watermark (draggable glass pill, auto FPS/ping/time). returns { Set, SetVisible, Destroy }
 function RayVinzUI:Watermark(o)
 	o = o or {}
-	local gui = self.Gui or ActiveGui
+	local gui = getGui(self)
 	-- default below the Roblox topbar + performance-stats bar (y=120); override with o.Position
 	local wm = new("CanvasGroup", { Name = "Watermark", Size = UDim2.fromOffset(0, 30), AutomaticSize = Enum.AutomaticSize.X, Position = o.Position or UDim2.new(0, 16, 0, 120), BackgroundColor3 = Color3.fromRGB(26, 26, 30), BackgroundTransparency = 0.18, ZIndex = 85 }, gui); corner(wm, 9); stroke(wm, Theme.White, 0.58, 1.2); glassSheen(wm, 9, 0); pad(wm, 0, 13, 0, 13)
 	local lbl = ltext(wm, o.Text or "RayVinz Hub", 12, Theme.Text, FB); lbl.Size = UDim2.new(0, 0, 1, 0); lbl.AutomaticSize = Enum.AutomaticSize.X; lbl.ZIndex = 2
@@ -1626,7 +1637,7 @@ end
 
 function RayVinzUI:Loading(o)
 	o = o or {}
-	local gui = self.Gui or ActiveGui
+	local gui = getGui(self)
 	-- frosted glass loader: blur the scene + a translucent glass card
 	local lblur = nil
 	if o.Blur ~= false then
